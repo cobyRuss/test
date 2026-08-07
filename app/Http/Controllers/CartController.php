@@ -1,0 +1,144 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\CartItem;
+use App\Models\Product;
+use App\Services\CartService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class CartController extends Controller
+{
+    public function index(CartService $cart)
+    {
+        $items = $cart->items();
+        $subtotal = $cart->subtotal();
+
+        $customer = Auth::guard('web')->user();
+        $municipality = $customer->municipality ?? 'Bangued';
+        $deliveryFees = config('deliveryfees');
+        $deliveryFee = $deliveryFees[$municipality] ?? 100;
+        $grandTotal = $subtotal + $deliveryFee;
+
+        return view('cart.index', compact('items', 'subtotal', 'deliveryFee', 'grandTotal', 'municipality'));
+    }
+
+    public function update(Request $request)
+    {
+        $cartId = $request->input('cart_id');
+        $quantity = max(1, (int) $request->input('quantity'));
+
+        if ($cartId === 'custom') {
+            $custom = session('custom_arrangement');
+
+            if (is_array($custom)) {
+                $custom['quantity'] = $quantity;
+                session(['custom_arrangement' => $custom]);
+            }
+        } else {
+            CartItem::query()
+                ->where('id', $cartId)
+                ->where('customer_id', Auth::guard('web')->id())
+                ->update(['quantity' => $quantity]);
+        }
+
+        return redirect()->route('cart.index');
+    }
+
+    public function remove(Request $request)
+    {
+        $cartId = $request->input('cart_id');
+
+        if ($cartId === 'custom') {
+            session()->forget('custom_arrangement');
+        } else {
+            CartItem::query()
+                ->where('id', $cartId)
+                ->where('customer_id', Auth::guard('web')->id())
+                ->delete();
+        }
+
+        return redirect()->route('cart.index');
+    }
+
+    public function add(Request $request)
+    {
+        $productId = (int) $request->input('product_id', 0);
+        $quantity = max(1, (int) $request->input('quantity', 1));
+
+        $product = Product::query()->find($productId);
+
+        if (! $product) {
+            return response()->json(['success' => false, 'message' => 'Product not found']);
+        }
+
+        if (! Auth::guard('web')->check()) {
+            return response()->json(['success' => false, 'message' => 'Please login to add items to your cart.']);
+        }
+
+        $customerId = Auth::guard('web')->id();
+
+        $existing = CartItem::query()
+            ->where('customer_id', $customerId)
+            ->where('product_id', $productId)
+            ->first();
+
+        if ($existing) {
+            $existing->increment('quantity', $quantity);
+        } else {
+            CartItem::query()->create([
+                'customer_id' => $customerId,
+                'product_id' => $productId,
+                'quantity' => $quantity,
+            ]);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Added to cart']);
+    }
+
+    public function addCustom(Request $request)
+    {
+        $name = $request->input('name', 'Custom Flower Arrangement');
+        $price = (float) $request->input('price', 0);
+        $description = $request->input('description', '');
+        $quantity = max(1, (int) $request->input('quantity', 1));
+
+        $existing = session('custom_arrangement');
+
+        if (is_array($existing)) {
+            $existing['quantity'] = (int) $existing['quantity'] + $quantity;
+            $existing['name'] = $name;
+            $existing['price'] = $price;
+            $existing['description'] = $description;
+            session(['custom_arrangement' => $existing]);
+        } else {
+            session([
+                'custom_arrangement' => [
+                    'name' => $name,
+                    'price' => $price,
+                    'description' => $description,
+                    'quantity' => $quantity,
+                ],
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function count(CartService $cart)
+    {
+        return response()->json(['count' => $cart->count()]);
+    }
+
+    public function clear()
+    {
+        CartItem::query()
+            ->where('customer_id', Auth::guard('web')->id())
+            ->delete();
+
+        session()->forget('custom_arrangement');
+
+        return response()->json(['success' => true]);
+    }
+}

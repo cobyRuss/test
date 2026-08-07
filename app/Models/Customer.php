@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+
+class Customer extends Model implements AuthenticatableContract
+{
+    use Authenticatable;
+
+    protected $table = 'customers';
+
+    public $timestamps = false;
+
+    protected $fillable = [
+        'full_name',
+        'email',
+        'phone',
+        'municipality',
+        'address',
+        'password_hash',
+        'reset_code',
+        'reset_code_expires',
+        'reset_code_attempts',
+        'reset_token',
+        'reset_expires',
+    ];
+
+    protected $hidden = ['password_hash'];
+
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
+
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class, 'customer_id');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'customer_id');
+    }
+
+    public function savedCustomizations()
+    {
+        return $this->hasMany(SavedCustomization::class, 'customer_id');
+    }
+}
