@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
+use App\Models\CustomizationOption;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ServicePhoto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -39,6 +41,7 @@ class DashboardController extends Controller
         $data = array_merge($data, $this->loadMessages());
         $data = array_merge($data, $this->loadOrders($request));
         $data = array_merge($data, $this->loadReports($request));
+        $data = array_merge($data, $this->loadCustomizationOptions());
 
         return view('admin.dashboard', $data);
     }
@@ -126,6 +129,129 @@ class DashboardController extends Controller
                 case 'delete_service_photo':
                     ServicePhoto::query()->where('id', $request->input('id'))->delete();
                     $message = 'Service photo deleted successfully!';
+                    break;
+
+                case 'add_custom_flower':
+                    CustomizationOption::query()->create([
+                        'type' => 'flower',
+                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                        'price' => (float) $request->input('price', 0),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'is_active' => $request->boolean('is_active'),
+                        'sort_order' => (int) $request->input('sort_order', 0),
+                    ]);
+                    $message = 'Flower added successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'edit_custom_flower':
+                    $flower = CustomizationOption::query()->find((int) $request->input('id'));
+
+                    if ($flower) {
+                        $data = [
+                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                            'price' => (float) $request->input('price', 0),
+                            'is_active' => $request->boolean('is_active'),
+                            'sort_order' => (int) $request->input('sort_order', 0),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        }
+
+                        $flower->update($data);
+                        $message = 'Flower updated successfully!';
+                    }
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'delete_custom_flower':
+                    CustomizationOption::query()->where('id', (int) $request->input('id'))->delete();
+                    $message = 'Flower deleted successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'add_custom_color':
+                    CustomizationOption::query()->create([
+                        'type' => 'color',
+                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                        'price' => (float) $request->input('price', 0),
+                        'is_active' => $request->boolean('is_active'),
+                        'sort_order' => (int) $request->input('sort_order', 0),
+                    ]);
+                    $message = 'Wrapper color added successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'edit_custom_color':
+                    $color = CustomizationOption::query()->find((int) $request->input('id'));
+
+                    if ($color) {
+                        $color->update([
+                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                            'price' => (float) $request->input('price', 0),
+                            'is_active' => $request->boolean('is_active'),
+                            'sort_order' => (int) $request->input('sort_order', 0),
+                        ]);
+                        $message = 'Wrapper color updated successfully!';
+                    }
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'delete_custom_color':
+                    CustomizationOption::query()->where('id', (int) $request->input('id'))->delete();
+                    $message = 'Wrapper color deleted successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'add_custom_style':
+                    CustomizationOption::query()->create([
+                        'type' => 'style',
+                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                        'price' => (float) $request->input('price', 0),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'is_active' => $request->boolean('is_active'),
+                        'sort_order' => (int) $request->input('sort_order', 0),
+                    ]);
+                    $message = 'Style added successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'edit_custom_style':
+                    $style = CustomizationOption::query()->find((int) $request->input('id'));
+
+                    if ($style) {
+                        $data = [
+                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                            'price' => (float) $request->input('price', 0),
+                            'is_active' => $request->boolean('is_active'),
+                            'sort_order' => (int) $request->input('sort_order', 0),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        }
+
+                        $style->update($data);
+                        $message = 'Style updated successfully!';
+                    }
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'delete_custom_style':
+                    CustomizationOption::query()->where('id', (int) $request->input('id'))->delete();
+                    $message = 'Style deleted successfully!';
+                    session(['active_tab' => 'customization']);
                     break;
 
                 case 'verify_gcash':
@@ -259,6 +385,39 @@ class DashboardController extends Controller
         ];
 
         return compact('servicePhotos', 'serviceCategories', 'serviceNames');
+    }
+
+    private function storeUploadedImage($file): ?string
+    {
+        if (! $file || ! $file->isValid()) {
+            return null;
+        }
+
+        $extension = $file->getClientOriginalExtension() ?: 'jpg';
+        $filename = 'flower_'.time().'_'.Str::random(8).'.'.$extension;
+        $file->move(public_path('images'), $filename);
+
+        return $filename;
+    }
+
+    private function loadCustomizationOptions(): array
+    {
+        $customFlowers = CustomizationOption::query()
+            ->where('type', 'flower')
+            ->orderBy('sort_order')
+            ->get();
+
+        $customColors = CustomizationOption::query()
+            ->where('type', 'color')
+            ->orderBy('sort_order')
+            ->get();
+
+        $customStyles = CustomizationOption::query()
+            ->where('type', 'style')
+            ->orderBy('sort_order')
+            ->get();
+
+        return compact('customFlowers', 'customColors', 'customStyles');
     }
 
     private function loadPayments(): array

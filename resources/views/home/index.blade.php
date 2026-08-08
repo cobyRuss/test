@@ -3,14 +3,11 @@
 @section('title', 'HappyStem | Flower Shop & Delivery in Bangued, Abra')
 
 @section('content')
-    <section class="hero" style="background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('{{ asset('images/bg.jpg') }}') center/cover;">
+    <section class="hero" id="home" style="background: linear-gradient(rgba(232, 180, 188, 0.8), rgba(138, 155, 110, 0.8)), url('{{ asset('images/bg2.jpg') }}') center/cover;">
         <div class="hero-content">
-            <h2>Fresh Flowers, Delivered with Love</h2>
-            <p>Handcrafted bouquets and arrangements for every occasion, delivered fresh across Abra.</p>
-            <div style="display:flex;gap:15px;justify-content:center;flex-wrap:wrap;">
-                <a href="#catalogue" class="btn">Shop Flowers</a>
-                <a href="{{ route('customize.index') }}" class="btnn">Customize Your Own</a>
-            </div>
+            <h2>Beautiful Flowers for Every Occasion</h2>
+            <p>Discover the beauty of nature with our handpicked selection of fresh flowers and arrangements. Bring joy and elegance to your space with our floral creations.</p>
+            <a href="#catalogue" class="btnn">Explore Our Collection</a>
         </div>
     </section>
 
@@ -45,12 +42,21 @@
                                 <p>{{ \Illuminate\Support\Str::limit($product->description, 80) }}</p>
                                 <div class="product-price">₱{{ number_format($product->price, 2) }}</div>
                                 <div class="product-actions">
-                                    <button class="add-to-cart-btn" data-id="{{ $product->id }}" data-name="{{ $product->name }}">
-                                        <i class="fas fa-cart-plus"></i> Add
-                                    </button>
-                                    <button class="buy-now-btn" data-id="{{ $product->id }}">
-                                        <i class="fas fa-bolt"></i> Buy Now
-                                    </button>
+                                    @auth('web')
+                                        <button class="add-to-cart-btn" data-id="{{ $product->id }}" data-name="{{ $product->name }}">
+                                            <i class="fas fa-cart-plus"></i> Add
+                                        </button>
+                                        <button class="buy-now-btn" data-id="{{ $product->id }}">
+                                            <i class="fas fa-bolt"></i> Buy Now
+                                        </button>
+                                    @else
+                                        <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="add-to-cart-btn">
+                                            <i class="fas fa-sign-in-alt"></i> Login to Order
+                                        </a>
+                                        <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="buy-now-btn">
+                                            <i class="fas fa-bolt"></i> Buy Now
+                                        </a>
+                                    @endauth
                                     <a class="buy-now-btn" href="{{ route('products.show', $product->id) }}" style="text-decoration:none;">
                                         <i class="fas fa-eye"></i>
                                     </a>

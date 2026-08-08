@@ -34,7 +34,7 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
-            $redirect = $request->query('redirect');
+            $redirect = $request->input('redirect');
 
             if ($redirect && ! str_starts_with($redirect, 'http')) {
                 return redirect($redirect);

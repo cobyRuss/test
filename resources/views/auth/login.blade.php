@@ -29,6 +29,7 @@
 
             <form action="{{ route('login.submit') }}" method="POST">
                 @csrf
+                <input type="hidden" name="redirect" value="{{ request('redirect') }}">
                 <div class="form-group" style="margin-bottom:15px;">
                     <label>Email Address</label>
                     <input type="email" name="email" value="{{ old('email') }}" placeholder="you@email.com" required autofocus>

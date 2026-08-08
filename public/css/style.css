@@ -52,6 +52,7 @@ header {
     gap: 12px;
     flex-shrink: 0;
     text-decoration: none;
+    color: #fff;
 }
 
 .logo-img {

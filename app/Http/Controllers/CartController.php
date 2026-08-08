@@ -99,6 +99,14 @@ class CartController extends Controller
 
     public function addCustom(Request $request)
     {
+        if (! Auth::guard('web')->check()) {
+            return response()->json([
+                'success' => false,
+                'login_required' => true,
+                'message' => 'Please login to add items to your cart.',
+            ], 401);
+        }
+
         $name = $request->input('name', 'Custom Flower Arrangement');
         $price = (float) $request->input('price', 0);
         $description = $request->input('description', '');

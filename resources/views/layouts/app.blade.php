@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'HappyStem | Flower Shop & Delivery in Bangued, Abra')</title>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    <link rel="icon" href="{{ asset('images/logo.jpg') }}" type="image/jpeg">
+    <link rel="icon" href="{{ asset('images/qqq.png') }}" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
         .page-heading { text-align: center; padding: 60px 20px 20px; }
@@ -37,13 +37,13 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <a href="{{ route('home') }}" class="logo">
-                    <img src="{{ asset('images/logo.jpg') }}" alt="HappyStem Logo" class="logo-img">
+                <div class="logo">
+                    <img src="{{ asset('images/qqq.png') }}" alt="HappyStem Logo" class="logo-img">
                     <div class="logo-text">
                         <h1>HappyStem</h1>
-                        <p>Flower Shop &amp; Delivery</p>
+                        <p>by Carmencita</p>
                     </div>
-                </a>
+                </div>
 
                 <div class="header-right">
                     <nav>
@@ -72,6 +72,7 @@
                             <a href="{{ route('account') }}" class="cart-link"><i class="fas fa-user"></i> {{ \Illuminate\Support\Str::before(Auth::guard('web')->user()->full_name, ' ') }}</a>
                         @else
                             <a href="{{ route('login') }}" class="cart-link"><i class="fas fa-sign-in-alt"></i> Login</a>
+                            <a href="{{ route('register') }}" class="cart-link"><i class="fas fa-user-plus"></i> Register</a>
                         @endauth
                     </div>
                 </div>

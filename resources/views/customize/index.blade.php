@@ -5,25 +5,33 @@
 @section('content')
     <section class="page-heading">
         <h2>Design Your Own Bouquet</h2>
-        <p>Pick your flowers, colors, style and add-ons to create a one-of-a-kind arrangement.</p>
+        <p>Pick your flowers, wrapper color and style to create a one-of-a-kind arrangement.</p>
     </section>
 
     <section style="padding: 20px 0 80px;">
         <div class="container">
             <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;">
                 <div style="flex:1.3;min-width:320px;">
+
                     <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:25px;">
-                        <h3 style="color:var(--secondary);margin-bottom:15px;">Start From a Preset</h3>
-                        <div class="catalogue" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px;">
-                            @foreach ($presets as $preset)
-                                <div class="product-card preset-apply" data-name="{{ $preset->name }}" data-price="{{ $preset->base_price }}"
-                                     data-image="{{ $preset->image_url }}" data-description="{{ $preset->description }}" style="cursor:pointer;">
-                                    <div class="product-img" style="height:120px;">
-                                        <img src="{{ asset('images/'.$preset->image_url) }}" alt="{{ $preset->name }}">
-                                    </div>
-                                    <div class="product-info" style="padding:12px;">
-                                        <h3 style="font-size:0.95rem;">{{ $preset->name }}</h3>
-                                        <div class="product-price" style="font-size:0.9rem;">₱{{ number_format($preset->base_price, 2) }}</div>
+                        <h3 style="color:var(--secondary);margin-bottom:15px;">Choose Your Flowers</h3>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+                            @foreach ($flowers as $flower)
+                                <div class="flower-card" data-id="{{ $flower->id }}" data-name="{{ $flower->display_name }}"
+                                     data-price="{{ $flower->price }}" data-image="{{ $flower->image_url }}"
+                                     style="border:2px solid #eee;border-radius:10px;padding:12px;text-align:center;transition:all .2s;">
+                                    @if ($flower->image_url)
+                                        <img src="{{ asset('images/'.$flower->image_url) }}" alt="{{ $flower->display_name }}"
+                                             style="width:70px;height:70px;object-fit:cover;border-radius:50%;margin-bottom:6px;">
+                                    @else
+                                        <i class="fas fa-seedling" style="font-size:1.8rem;color:var(--primary);margin-bottom:6px;display:block;"></i>
+                                    @endif
+                                    <div style="font-size:0.9rem;color:var(--dark);font-weight:600;">{{ $flower->display_name }}</div>
+                                    <div style="font-size:0.82rem;color:var(--accent);margin-bottom:8px;">₱{{ number_format($flower->price, 2) }}/stem</div>
+                                    <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                                        <button type="button" class="qty-minus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">−</button>
+                                        <span class="qty-value" style="font-weight:bold;min-width:22px;text-align:center;">0</span>
+                                        <button type="button" class="qty-plus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">+</button>
                                     </div>
                                 </div>
                             @endforeach
@@ -31,67 +39,44 @@
                     </div>
 
                     <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:25px;">
-                        <h3 style="color:var(--secondary);margin-bottom:15px;">Choose Your Flowers</h3>
-                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">
-                            @foreach ($flowers as $flower)
-                                <label class="opt-card flower-opt" data-name="{{ $flower->display_name }}" data-price="{{ $flower->price }}" data-image="{{ $flower->image_url }}"
-                                       style="border:2px solid #eee;border-radius:10px;padding:10px;cursor:pointer;text-align:center;">
-                                    <input type="radio" name="flower" value="{{ $flower->name }}" style="display:none;">
-                                    @if ($flower->image_url)
-                                        <img src="{{ asset('images/'.$flower->image_url) }}" alt="{{ $flower->display_name }}" style="width:60px;height:60px;object-fit:cover;border-radius:50%;margin-bottom:6px;">
-                                    @else
-                                        <i class="fas fa-seedling" style="font-size:1.6rem;color:var(--primary);margin-bottom:6px;display:block;"></i>
-                                    @endif
-                                    <div style="font-size:0.88rem;color:var(--dark);">{{ $flower->display_name }}</div>
-                                    <div style="font-size:0.8rem;color:var(--accent);font-weight:600;">+₱{{ number_format($flower->price, 2) }}</div>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:25px;">
-                        <h3 style="color:var(--secondary);margin-bottom:15px;">Color</h3>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <h3 style="color:var(--secondary);margin-bottom:15px;">Wrapper Color</h3>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+                            @php
+                                $swatches = [
+                                    'red' => '#e74c3c', 'pink' => '#e8b4bc', 'white' => '#f9f3f4',
+                                    'yellow' => '#f1c40f', 'purple' => '#9b59b6',
+                                    'mixed' => 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)',
+                                ];
+                                $swatchDefault = 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)';
+                            @endphp
                             @foreach ($colors as $color)
-                                <label class="opt-card color-opt" data-name="{{ $color->display_name }}" data-price="{{ $color->price }}"
-                                       style="border:2px solid #eee;border-radius:10px;padding:10px 14px;cursor:pointer;text-align:center;">
-                                    <input type="radio" name="color" value="{{ $color->name }}" style="display:none;">
-                                    <div style="font-size:0.88rem;color:var(--dark);">{{ $color->display_name }}</div>
+                                <div class="color-card" data-name="{{ $color->display_name }}" data-price="{{ $color->price }}"
+                                     title="{{ $color->display_name }}"
+                                     style="border:3px solid transparent;border-radius:50%;cursor:pointer;text-align:center;transition:all .2s;">
+                                    <div style="width:56px;height:56px;border-radius:50%;background:{{ $swatches[$color->name] ?? $swatchDefault }};border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.12);"></div>
+                                    <div style="font-size:0.75rem;color:var(--dark);margin-top:4px;">{{ $color->display_name }}</div>
                                     @if ($color->price > 0)
-                                        <div style="font-size:0.78rem;color:var(--accent);">+₱{{ number_format($color->price, 2) }}</div>
+                                        <div style="font-size:0.7rem;color:var(--accent);">+₱{{ number_format($color->price, 2) }}</div>
                                     @endif
-                                </label>
+                                </div>
                             @endforeach
                         </div>
                     </div>
 
                     <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:25px;">
-                        <h3 style="color:var(--secondary);margin-bottom:15px;">Style</h3>
+                        <h3 style="color:var(--secondary);margin-bottom:15px;">Arrangement Style</h3>
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
                             @foreach ($styles as $style)
-                                <label class="opt-card style-opt" data-name="{{ $style->display_name }}" data-price="{{ $style->price }}" data-image="{{ $style->image_url }}"
-                                       style="border:2px solid #eee;border-radius:10px;padding:10px;cursor:pointer;text-align:center;">
-                                    <input type="radio" name="style" value="{{ $style->name }}" style="display:none;">
+                                <div class="style-card" data-id="{{ $style->id }}" data-name="{{ $style->display_name }}"
+                                     data-price="{{ $style->price }}" data-image="{{ $style->image_url }}"
+                                     style="border:2px solid #eee;border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:all .2s;">
                                     @if ($style->image_url)
-                                        <img src="{{ asset('images/'.$style->image_url) }}" alt="{{ $style->display_name }}" style="width:60px;height:60px;object-fit:cover;border-radius:50%;margin-bottom:6px;" onerror="this.style.display='none';">
+                                        <img src="{{ asset('images/'.$style->image_url) }}" alt="{{ $style->display_name }}"
+                                             style="width:70px;height:70px;object-fit:cover;border-radius:50%;margin-bottom:6px;" onerror="this.style.display='none';">
                                     @endif
-                                    <div style="font-size:0.88rem;color:var(--dark);">{{ $style->display_name }}</div>
-                                    <div style="font-size:0.8rem;color:var(--accent);font-weight:600;">+₱{{ number_format($style->price, 2) }}</div>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:25px;">
-                        <h3 style="color:var(--secondary);margin-bottom:15px;">Add-Ons</h3>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                            @foreach ($addons as $addon)
-                                <label class="opt-card addon-opt" data-name="{{ $addon->display_name }}" data-price="{{ $addon->price }}"
-                                       style="border:2px solid #eee;border-radius:10px;padding:10px 14px;cursor:pointer;text-align:center;">
-                                    <input type="checkbox" name="addon" value="{{ $addon->name }}" style="display:none;">
-                                    <div style="font-size:0.88rem;color:var(--dark);">{{ $addon->display_name }}</div>
-                                    <div style="font-size:0.78rem;color:var(--accent);">+₱{{ number_format($addon->price, 2) }}</div>
-                                </label>
+                                    <div style="font-size:0.9rem;color:var(--dark);font-weight:600;">{{ $style->display_name }}</div>
+                                    <div style="font-size:0.82rem;color:var(--accent);">+₱{{ number_format($style->price, 2) }}</div>
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -111,45 +96,13 @@
 
                         <div class="product-price" id="designTotal" style="font-size:1.5rem;text-align:center;margin-bottom:15px;">₱0.00</div>
 
-                        <div class="form-group" style="margin-bottom:15px;">
-                            <label>Quantity</label>
-                            <input type="number" id="customQty" value="1" min="1" style="width:100%;">
-                        </div>
-
                         <button type="button" class="btn" id="addCustomToCart" style="width:100%;text-align:center;margin-bottom:10px;">
                             <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
-                        <button type="button" class="btnn" id="saveDesign" style="width:100%;text-align:center;">
-                            <i class="fas fa-save"></i> Save Design
+                        <button type="button" class="btnn" id="buyNowBtn" style="width:100%;text-align:center;">
+                            <i class="fas fa-bolt"></i> Buy Now
                         </button>
                     </div>
-
-                    @auth('web')
-                        @if ($savedDesigns->isNotEmpty())
-                            <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-top:25px;">
-                                <h3 style="color:var(--secondary);margin-bottom:15px;">My Saved Designs</h3>
-                                @foreach ($savedDesigns as $design)
-                                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
-                                        <div>
-                                            <strong style="color:var(--dark);">{{ $design->design_name ?: 'Untitled' }}</strong>
-                                            <p style="font-size:0.85rem;color:var(--accent);">₱{{ number_format($design->total_price, 2) }}</p>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                            <button type="button" class="load-design-btn submit-btn" style="padding:6px 12px;font-size:0.8rem;"
-                                                    data-json="{{ $design->design_data ?: '{}' }}" data-name="{{ $design->design_name ?: 'Custom Design' }}">
-                                                Load
-                                            </button>
-                                            <form action="{{ route('customize.delete') }}" method="POST">
-                                                @csrf
-                                                <input type="hidden" name="id" value="{{ $design->id }}">
-                                                <button type="submit" class="submit-btn" style="padding:6px 12px;font-size:0.8rem;background:#c94a4a;">Delete</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    @endauth
                 </div>
             </div>
         </div>
@@ -158,124 +111,99 @@
 
 @push('scripts')
 <script>
-    const selection = { flower: null, color: null, style: null, addons: [] };
+    const flowers = {};
+    document.querySelectorAll('.flower-card').forEach(card => {
+        const data = { id: card.dataset.id, name: card.dataset.name, price: parseFloat(card.dataset.price || 0), image: card.dataset.image || '', qty: 0 };
+        flowers[data.id] = data;
+        const val = card.querySelector('.qty-value');
+        card.querySelector('.qty-plus').addEventListener('click', (e) => { e.stopPropagation(); setQty(card, data, data.qty + 1); });
+        card.querySelector('.qty-minus').addEventListener('click', (e) => { e.stopPropagation(); setQty(card, data, data.qty - 1); });
+    });
+    function setQty(card, data, qty) {
+        data.qty = Math.max(0, qty);
+        card.querySelector('.qty-value').textContent = data.qty;
+        card.style.borderColor = data.qty > 0 ? 'var(--accent)' : '#eee';
+        card.style.background = data.qty > 0 ? 'rgba(209,123,136,0.06)' : '#fff';
+        recompute();
+    }
 
-    function selectedPrice(type) {
-        const opt = selection[type];
-        if (!opt) return 0;
-        const el = document.querySelector(`.${type}-opt[data-name="${opt}"]`);
-        return el ? parseFloat(el.dataset.price || 0) : 0;
+    let color = null;
+    document.querySelectorAll('.color-card').forEach(el => {
+        el.addEventListener('click', () => {
+            document.querySelectorAll('.color-card').forEach(x => x.style.borderColor = 'transparent');
+            el.style.borderColor = 'var(--dark)';
+            color = { name: el.dataset.name, price: parseFloat(el.dataset.price || 0) };
+            recompute();
+        });
+    });
+
+    let style = null;
+    document.querySelectorAll('.style-card').forEach(el => {
+        el.addEventListener('click', () => {
+            document.querySelectorAll('.style-card').forEach(x => x.style.borderColor = '#eee');
+            el.style.borderColor = 'var(--accent)';
+            style = { name: el.dataset.name, price: parseFloat(el.dataset.price || 0), image: el.dataset.image || '' };
+            recompute();
+        });
+    });
+
+    function selectedFlowers() {
+        return Object.values(flowers).filter(f => f.qty > 0);
     }
 
     function recompute() {
+        const sel = selectedFlowers();
         let total = 0;
         const lines = [];
-        if (selection.flower) {
-            total += selectedPrice('flower');
-            lines.push(`<p><strong>${selection.flower}</strong> (Flowers)</p>`);
+        sel.forEach(f => {
+            const sub = f.price * f.qty;
+            total += sub;
+            lines.push(`<p><strong>${f.name}</strong> &times; ${f.qty} &mdash; &#8369;${sub.toFixed(2)}</p>`);
+        });
+        if (color) {
+            total += color.price;
+            lines.push(`<p>Wrapper: ${color.name}${color.price > 0 ? ' (+&#8369;' + color.price.toFixed(2) + ')' : ''}</p>`);
         }
-        if (selection.color) {
-            total += selectedPrice('color');
-            lines.push(`<p>${selection.color} (Color)</p>`);
-        }
-        if (selection.style) {
-            total += selectedPrice('style');
-            lines.push(`<p>${selection.style} (Style)</p>`);
-        }
-        if (selection.addons.length) {
-            selection.addons.forEach(name => {
-                const el = document.querySelector(`.addon-opt[data-name="${name}"]`);
-                if (el) total += parseFloat(el.dataset.price || 0);
-            });
-            lines.push(`<p>${selection.addons.join(', ')} (Add-ons)</p>`);
+        if (style) {
+            total += style.price;
+            lines.push(`<p>Style: ${style.name} (+&#8369;${style.price.toFixed(2)})</p>`);
         }
         document.getElementById('designSummary').innerHTML = lines.length ? lines.join('') : '<p style="color:var(--secondary);">No selections yet.</p>';
         document.getElementById('designTotal').textContent = '₱' + total.toFixed(2);
 
-        if (selection.flower) {
-            const el = document.querySelector(`.flower-opt[data-name="${selection.flower}"]`);
-            const img = el ? el.dataset.image : null;
-            if (img) {
-                document.getElementById('designPreview').src = "{{ asset('images/') }}/" + img;
-            }
+        const first = sel[0];
+        const previewImg = document.getElementById('designPreview');
+        if (first && first.image) {
+            previewImg.src = "{{ asset('images/') }}/" + first.image;
+        } else if (style && style.image) {
+            previewImg.src = "{{ asset('images/') }}/" + style.image;
         }
     }
 
-    document.querySelectorAll('.flower-opt').forEach(el => {
-        el.addEventListener('click', () => {
-            document.querySelectorAll('.flower-opt').forEach(x => x.style.borderColor = '#eee');
-            el.style.borderColor = 'var(--accent)';
-            selection.flower = el.dataset.name;
-            recompute();
-        });
-    });
+    function summaryText() {
+        const sel = selectedFlowers();
+        const parts = [];
+        sel.forEach(f => parts.push(`${f.name} x${f.qty}`));
+        if (color) parts.push('Wrapper: ' + color.name);
+        if (style) parts.push('Style: ' + style.name);
+        return parts.join('; ');
+    }
 
-    document.querySelectorAll('.color-opt').forEach(el => {
-        el.addEventListener('click', () => {
-            document.querySelectorAll('.color-opt').forEach(x => x.style.borderColor = '#eee');
-            el.style.borderColor = 'var(--accent)';
-            selection.color = el.dataset.name;
-            recompute();
-        });
-    });
+    function currentTotal() {
+        return parseFloat(document.getElementById('designTotal').textContent.replace('₱', '')) || 0;
+    }
 
-    document.querySelectorAll('.style-opt').forEach(el => {
-        el.addEventListener('click', () => {
-            document.querySelectorAll('.style-opt').forEach(x => x.style.borderColor = '#eee');
-            el.style.borderColor = 'var(--accent)';
-            selection.style = el.dataset.name;
-            recompute();
-        });
-    });
-
-    document.querySelectorAll('.addon-opt').forEach(el => {
-        el.addEventListener('click', () => {
-            const checked = el.style.borderColor === 'rgb(209, 123, 136)' || el.style.borderColor === 'var(--accent)';
-            el.style.borderColor = checked ? '#eee' : 'var(--accent)';
-            const name = el.dataset.name;
-            if (checked) {
-                selection.addons = selection.addons.filter(n => n !== name);
-            } else {
-                selection.addons.push(name);
-            }
-            recompute();
-        });
-    });
-
-    document.querySelectorAll('.preset-apply').forEach(el => {
-        el.addEventListener('click', () => {
-            document.querySelectorAll('.flower-opt').forEach(x => x.style.borderColor = '#eee');
-            document.querySelectorAll('.color-opt').forEach(x => x.style.borderColor = '#eee');
-            document.querySelectorAll('.style-opt').forEach(x => x.style.borderColor = '#eee');
-            document.querySelectorAll('.addon-opt').forEach(x => x.style.borderColor = '#eee');
-            selection.flower = null;
-            selection.color = null;
-            selection.style = null;
-            selection.addons = [];
-            selection.flower = el.dataset.name;
-            document.getElementById('designPreview').src = "{{ asset('images/') }}/" + el.dataset.image;
-            document.getElementById('designTotal').textContent = '₱' + parseFloat(el.dataset.price).toFixed(2);
-            document.getElementById('designSummary').innerHTML = `<p><strong>${el.dataset.name}</strong> (Preset)</p>`;
-        });
-    });
-
-    document.getElementById('addCustomToCart').addEventListener('click', async () => {
-        const qty = parseInt(document.getElementById('customQty').value) || 1;
-        const totalText = document.getElementById('designTotal').textContent.replace('₱', '');
-        const price = parseFloat(totalText) / qty;
-        const desc = Array.from(document.querySelectorAll('#designSummary p')).map(p => p.textContent.trim()).join('; ');
-
-        if (price <= 0) {
-            alert('Please select at least a flower type first.');
-            return;
+    async function addCustom() {
+        if (selectedFlowers().length === 0) {
+            alert('Please select at least one flower first.');
+            return null;
         }
-
+        const total = currentTotal();
         const fd = new FormData();
-        fd.append('name', selection.flower || 'Custom Flower Arrangement');
-        fd.append('price', price);
-        fd.append('description', desc);
-        fd.append('quantity', qty);
-
+        fd.append('name', 'Custom Flower Arrangement');
+        fd.append('price', total);
+        fd.append('description', summaryText());
+        fd.append('quantity', 1);
         const res = await fetch("{{ route('cart.addCustom') }}", {
             method: 'POST',
             body: fd,
@@ -283,71 +211,30 @@
         });
         const data = await res.json();
         if (data.success) {
-            alert('Custom design added to cart!');
             if (window.updateCartCount) updateCartCount();
+            return data;
+        }
+        if (data.login_required) {
+            window.location.href = "{{ route('login', ['redirect' => request()->url()]) }}";
         } else {
             alert(data.message);
         }
+        return null;
+    }
+
+    document.getElementById('addCustomToCart').addEventListener('click', async () => {
+        const data = await addCustom();
+        if (data && data.success) alert('Custom design added to cart!');
     });
 
-    document.getElementById('saveDesign').addEventListener('click', async () => {
-        const name = prompt('Name your design:', selection.flower || 'Custom Design');
-        if (!name) return;
-        const total = parseFloat(document.getElementById('designTotal').textContent.replace('₱', ''));
-
-        const fd = new FormData();
-        fd.append('design_name', name);
-        fd.append('design_data', JSON.stringify(selection));
-        fd.append('total_price', total);
-
-        const res = await fetch("{{ route('customize.save') }}", {
+    document.getElementById('buyNowBtn').addEventListener('click', async () => {
+        const clearRes = await fetch("{{ route('cart.clear') }}", {
             method: 'POST',
-            body: fd,
             headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
         });
-        const data = await res.json();
-        if (data.success) {
-            alert('Design saved!');
-            location.reload();
-        } else {
-            alert(data.message);
-        }
-    });
-
-    document.querySelectorAll('.load-design-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            try {
-                const data = JSON.parse(btn.dataset.json);
-                document.querySelectorAll('.flower-opt').forEach(x => x.style.borderColor = '#eee');
-                document.querySelectorAll('.color-opt').forEach(x => x.style.borderColor = '#eee');
-                document.querySelectorAll('.style-opt').forEach(x => x.style.borderColor = '#eee');
-                document.querySelectorAll('.addon-opt').forEach(x => x.style.borderColor = '#eee');
-                selection.flower = data.flower || null;
-                selection.color = data.color || null;
-                selection.style = data.style || null;
-                selection.addons = data.addons || [];
-                if (selection.flower) {
-                    const el = document.querySelector(`.flower-opt[data-name="${selection.flower}"]`);
-                    if (el) el.style.borderColor = 'var(--accent)';
-                }
-                if (selection.color) {
-                    const el = document.querySelector(`.color-opt[data-name="${selection.color}"]`);
-                    if (el) el.style.borderColor = 'var(--accent)';
-                }
-                if (selection.style) {
-                    const el = document.querySelector(`.style-opt[data-name="${selection.style}"]`);
-                    if (el) el.style.borderColor = 'var(--accent)';
-                }
-                selection.addons.forEach(name => {
-                    const el = document.querySelector(`.addon-opt[data-name="${name}"]`);
-                    if (el) el.style.borderColor = 'var(--accent)';
-                });
-                recompute();
-                document.getElementById('designTotal').textContent = '₱' + parseFloat(btn.closest('div').querySelector('p').textContent.replace('₱', '').replace(',', '')).toFixed(2);
-            } catch (e) {
-                alert('Could not load design.');
-            }
-        });
+        await clearRes.json();
+        const data = await addCustom();
+        if (data && data.success) window.location.href = "{{ route('checkout.index') }}";
     });
 </script>
 @endpush

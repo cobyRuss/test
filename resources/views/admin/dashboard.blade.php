@@ -81,6 +81,7 @@
     <div class="admin-body">
         <div class="admin-nav">
             <button class="tab-btn {{ $activeTab === 'products' ? 'active' : '' }}" data-tab="products"><i class="fas fa-store"></i> Products</button>
+            <button class="tab-btn {{ $activeTab === 'customization' ? 'active' : '' }}" data-tab="customization"><i class="fas fa-magic"></i> Customization</button>
             <button class="tab-btn {{ $activeTab === 'categories' ? 'active' : '' }}" data-tab="categories"><i class="fas fa-tags"></i> Categories</button>
             <button class="tab-btn {{ $activeTab === 'services' ? 'active' : '' }}" data-tab="services"><i class="fas fa-images"></i> Services</button>
             <button class="tab-btn {{ $activeTab === 'payments' ? 'active' : '' }}" data-tab="payments"><i class="fas fa-money-check-alt"></i> Payments</button>
@@ -272,6 +273,208 @@
                         </table>
                     </div>
                 @endforeach
+            </div>
+
+            {{-- ─────────── CUSTOMIZATION ─────────── --}}
+            <div class="tab-panel {{ $activeTab === 'customization' ? 'active' : '' }}" id="tab-customization">
+                <div class="card">
+                    <h3>Add Flower</h3>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="action" value="add_custom_flower">
+                        <div class="form-grid">
+                            <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. rose" required></div>
+                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Roses"></div>
+                            <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" required></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div><label>Photo</label><input type="file" name="image" accept="image/*"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Flower</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Flowers ({{ $customFlowers->count() }})</h3>
+                    <table class="admin-table">
+                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customFlowers as $flower)
+                                <tr>
+                                    <td>
+                                        @if ($flower->image_url)
+                                            <img src="{{ asset('images/'.$flower->image_url) }}" alt="">
+                                        @else
+                                            <i class="fas fa-seedling" style="font-size:1.4rem;color:#8a9b6e;"></i>
+                                        @endif
+                                    </td>
+                                    <td><strong>{{ $flower->display_name }}</strong></td>
+                                    <td>{{ $flower->name }}</td>
+                                    <td>₱{{ number_format($flower->price, 2) }}</td>
+                                    <td>{{ $flower->sort_order }}</td>
+                                    <td>{{ $flower->is_active ? 'Yes' : 'No' }}</td>
+                                    <td>
+                                        <button class="btn-sm btn-edit edit-flower-btn"
+                                                data-id="{{ $flower->id }}"
+                                                data-name="{{ $flower->name }}"
+                                                data-display-name="{{ $flower->display_name }}"
+                                                data-price="{{ $flower->price }}"
+                                                data-sort-order="{{ $flower->sort_order }}"
+                                                data-active="{{ $flower->is_active ? '1' : '0' }}">
+                                            Edit
+                                        </button>
+                                        <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                            @csrf
+                                            <input type="hidden" name="action" value="delete_custom_flower">
+                                            <input type="hidden" name="id" value="{{ $flower->id }}">
+                                            <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this flower?');">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="empty-row">No flowers yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Add Wrapper Color</h3>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="action" value="add_custom_color">
+                        <div class="form-grid">
+                            <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. red" required></div>
+                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Red"></div>
+                            <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Wrapper Color</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Wrapper Colors ({{ $customColors->count() }})</h3>
+                    <table class="admin-table">
+                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customColors as $color)
+                                <tr>
+                                    <td>
+                                        @php
+                                            $swatchMap = ['red' => '#e74c3c', 'pink' => '#e8b4bc', 'white' => '#f9f3f4', 'yellow' => '#f1c40f', 'purple' => '#9b59b6'];
+                                        @endphp
+                                        <div style="width:40px;height:40px;border-radius:50%;background:{{ $swatchMap[$color->name] ?? 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)' }};border:2px solid #ddd;"></div>
+                                    </td>
+                                    <td><strong>{{ $color->display_name }}</strong></td>
+                                    <td>{{ $color->name }}</td>
+                                    <td>₱{{ number_format($color->price, 2) }}</td>
+                                    <td>{{ $color->sort_order }}</td>
+                                    <td>{{ $color->is_active ? 'Yes' : 'No' }}</td>
+                                    <td>
+                                        <button class="btn-sm btn-edit edit-color-btn"
+                                                data-id="{{ $color->id }}"
+                                                data-name="{{ $color->name }}"
+                                                data-display-name="{{ $color->display_name }}"
+                                                data-price="{{ $color->price }}"
+                                                data-sort-order="{{ $color->sort_order }}"
+                                                data-active="{{ $color->is_active ? '1' : '0' }}">
+                                            Edit
+                                        </button>
+                                        <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                            @csrf
+                                            <input type="hidden" name="action" value="delete_custom_color">
+                                            <input type="hidden" name="id" value="{{ $color->id }}">
+                                            <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this wrapper color?');">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="empty-row">No wrapper colors yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Add Style</h3>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="action" value="add_custom_style">
+                        <div class="form-grid">
+                            <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. bouquet" required></div>
+                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Hand-Tied Bouquet"></div>
+                            <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" required></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div><label>Photo</label><input type="file" name="image" accept="image/*"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Style</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Styles ({{ $customStyles->count() }})</h3>
+                    <table class="admin-table">
+                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customStyles as $style)
+                                <tr>
+                                    <td>
+                                        @if ($style->image_url)
+                                            <img src="{{ asset('images/'.$style->image_url) }}" alt="">
+                                        @else
+                                            <i class="fas fa-seedling" style="font-size:1.4rem;color:#8a9b6e;"></i>
+                                        @endif
+                                    </td>
+                                    <td><strong>{{ $style->display_name }}</strong></td>
+                                    <td>{{ $style->name }}</td>
+                                    <td>₱{{ number_format($style->price, 2) }}</td>
+                                    <td>{{ $style->sort_order }}</td>
+                                    <td>{{ $style->is_active ? 'Yes' : 'No' }}</td>
+                                    <td>
+                                        <button class="btn-sm btn-edit edit-style-btn"
+                                                data-id="{{ $style->id }}"
+                                                data-name="{{ $style->name }}"
+                                                data-display-name="{{ $style->display_name }}"
+                                                data-price="{{ $style->price }}"
+                                                data-sort-order="{{ $style->sort_order }}"
+                                                data-active="{{ $style->is_active ? '1' : '0' }}">
+                                            Edit
+                                        </button>
+                                        <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                            @csrf
+                                            <input type="hidden" name="action" value="delete_custom_style">
+                                            <input type="hidden" name="id" value="{{ $style->id }}">
+                                            <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this style?');">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="empty-row">No styles yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {{-- ─────────── PAYMENTS ─────────── --}}
@@ -576,6 +779,92 @@
         </div>
     </div>
 
+    <div class="edit-modal" id="editFlowerModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Flower</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="action" value="edit_custom_flower">
+                <input type="hidden" name="id" id="edit-flower-id">
+                <div class="form-grid">
+                    <div><label>Name (slug)</label><input type="text" name="name" id="edit-flower-name" required></div>
+                    <div><label>Display Name</label><input type="text" name="display_name" id="edit-flower-display-name"></div>
+                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-flower-price" required></div>
+                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-flower-sort-order"></div>
+                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-flower-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editFlowerModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editColorModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Wrapper Color</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST">
+                @csrf
+                <input type="hidden" name="action" value="edit_custom_color">
+                <input type="hidden" name="id" id="edit-color-id">
+                <div class="form-grid">
+                    <div><label>Name (slug)</label><input type="text" name="name" id="edit-color-name" required></div>
+                    <div><label>Display Name</label><input type="text" name="display_name" id="edit-color-display-name"></div>
+                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-color-price" required></div>
+                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-color-sort-order"></div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-color-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editColorModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editStyleModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Style</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="action" value="edit_custom_style">
+                <input type="hidden" name="id" id="edit-style-id">
+                <div class="form-grid">
+                    <div><label>Name (slug)</label><input type="text" name="name" id="edit-style-name" required></div>
+                    <div><label>Display Name</label><input type="text" name="display_name" id="edit-style-display-name"></div>
+                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-style-price" required></div>
+                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-style-sort-order"></div>
+                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-style-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editStyleModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -598,6 +887,42 @@
                 document.getElementById('edit-image').value = this.dataset.image;
                 document.getElementById('edit-description').value = this.dataset.description;
                 document.getElementById('editProductModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.edit-flower-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-flower-id').value = this.dataset.id;
+                document.getElementById('edit-flower-name').value = this.dataset.name;
+                document.getElementById('edit-flower-display-name').value = this.dataset.displayName;
+                document.getElementById('edit-flower-price').value = this.dataset.price;
+                document.getElementById('edit-flower-sort-order').value = this.dataset.sortOrder;
+                document.getElementById('edit-flower-active').value = this.dataset.active;
+                document.getElementById('editFlowerModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.edit-color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-color-id').value = this.dataset.id;
+                document.getElementById('edit-color-name').value = this.dataset.name;
+                document.getElementById('edit-color-display-name').value = this.dataset.displayName;
+                document.getElementById('edit-color-price').value = this.dataset.price;
+                document.getElementById('edit-color-sort-order').value = this.dataset.sortOrder;
+                document.getElementById('edit-color-active').value = this.dataset.active;
+                document.getElementById('editColorModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.edit-style-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-style-id').value = this.dataset.id;
+                document.getElementById('edit-style-name').value = this.dataset.name;
+                document.getElementById('edit-style-display-name').value = this.dataset.displayName;
+                document.getElementById('edit-style-price').value = this.dataset.price;
+                document.getElementById('edit-style-sort-order').value = this.dataset.sortOrder;
+                document.getElementById('edit-style-active').value = this.dataset.active;
+                document.getElementById('editStyleModal').classList.add('show');
             });
         });
     </script>
