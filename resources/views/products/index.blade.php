@@ -3,11 +3,8 @@
 @section('title', 'Shop Flowers | HappyStem')
 
 @section('content')
-    <section class="page-heading" style="background: linear-gradient(rgba(232, 180, 188, 0.75), rgba(138, 155, 110, 0.75)), url('{{ asset('images/ra.jpg') }}') center/cover; color:#fff; padding:70px 20px;">
-        <div style="display:inline-block;background:rgba(0,0,0,0.35);padding:30px 40px;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,0.25);">
-            <h2 style="color:#fff;text-shadow:1px 2px 5px rgba(0,0,0,0.6);">Our Flower Shop</h2>
-            <p style="text-shadow:1px 1px 4px rgba(0,0,0,0.6);">Fresh, handcrafted arrangements for every moment worth celebrating.</p>
-        </div>
+    <section class="page-heading" style="background: url('{{ asset('images/ra.jpg') }}') center/cover; color:#fff; padding:70px 20px;">
+        <h2 style="color:#fff;text-shadow:1px 2px 5px rgba(0,0,0,0.6);">Our Flower Shop</h2>
     </section>
 
     <section style="padding: 40px 0;">

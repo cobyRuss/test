@@ -120,15 +120,38 @@ class DashboardController extends Controller
                 case 'add_service_photo':
                     ServicePhoto::query()->create([
                         'category' => $request->input('category'),
-                        'image_url' => $request->input('image_url'),
-                        'caption' => $request->input('caption'),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'caption' => trim((string) $request->input('caption')),
                     ]);
                     $message = 'Service photo added successfully!';
+                    session(['active_tab' => 'services']);
+                    break;
+
+                case 'edit_service_photo':
+                    $photo = ServicePhoto::query()->find((int) $request->input('id'));
+
+                    if ($photo) {
+                        $data = [
+                            'category' => $request->input('category'),
+                            'caption' => trim((string) $request->input('caption')),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        }
+
+                        $photo->update($data);
+                        $message = 'Service photo updated successfully!';
+                    }
+                    session(['active_tab' => 'services']);
                     break;
 
                 case 'delete_service_photo':
                     ServicePhoto::query()->where('id', $request->input('id'))->delete();
                     $message = 'Service photo deleted successfully!';
+                    session(['active_tab' => 'services']);
                     break;
 
                 case 'add_custom_flower':
@@ -181,6 +204,7 @@ class DashboardController extends Controller
                         'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
+                        'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
                         'is_active' => $request->boolean('is_active'),
                         'sort_order' => (int) $request->input('sort_order', 0),
                     ]);
@@ -196,6 +220,7 @@ class DashboardController extends Controller
                             'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
+                            'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
                             'is_active' => $request->boolean('is_active'),
                             'sort_order' => (int) $request->input('sort_order', 0),
                         ]);
@@ -385,6 +410,22 @@ class DashboardController extends Controller
         ];
 
         return compact('servicePhotos', 'serviceCategories', 'serviceNames');
+    }
+
+    private function normalizeHexColor($value): ?string
+    {
+        $hex = strtolower(trim((string) $value));
+        $hex = ltrim($hex, '#');
+
+        if ($hex === '' || ! preg_match('/^[0-9a-f]{3}([0-9a-f]{3})?$/', $hex)) {
+            return null;
+        }
+
+        if (strlen($hex) === 3) {
+            $hex = preg_replace('/([0-9a-f])/', '$1$1', $hex);
+        }
+
+        return '#'.$hex;
     }
 
     private function storeUploadedImage($file): ?string

@@ -232,7 +232,7 @@
             <div class="tab-panel {{ $activeTab === 'services' ? 'active' : '' }}" id="tab-services">
                 <div class="card">
                     <h3>Add Service Photo</h3>
-                    <form action="{{ route('admin.dashboard.post') }}" method="POST" class="filter-bar">
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" class="filter-bar" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="action" value="add_service_photo">
                         <select name="category" required>
@@ -240,7 +240,7 @@
                                 <option value="{{ $cat }}">{{ $serviceNames[$cat] }}</option>
                             @endforeach
                         </select>
-                        <input type="text" name="image_url" placeholder="Image filename (e.g. w1.jpg)" required>
+                        <input type="file" name="image" accept="image/*" required>
                         <input type="text" name="caption" placeholder="Caption (e.g. Bridal Bouquet)">
                         <button type="submit" class="btn-sm btn-ok">Add Photo</button>
                     </form>
@@ -258,7 +258,13 @@
                                         <td><img src="{{ asset('images/'.$photo->image_url) }}" alt=""></td>
                                         <td>{{ $photo->caption }}</td>
                                         <td>
-                                            <form action="{{ route('admin.dashboard.post') }}" method="POST">
+                                            <button class="btn-sm btn-edit edit-service-photo-btn"
+                                                    data-id="{{ $photo->id }}"
+                                                    data-category="{{ $photo->category }}"
+                                                    data-caption="{{ $photo->caption }}">
+                                                Edit
+                                            </button>
+                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <input type="hidden" name="action" value="delete_service_photo">
                                                 <input type="hidden" name="id" value="{{ $photo->id }}">
@@ -353,6 +359,7 @@
                             <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. red" required></div>
                             <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Red"></div>
                             <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
+                            <div><label>Hex Color (e.g. #ff5733)</label><input type="text" name="hex_color" placeholder="#ff5733"></div>
                             <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
                             <div>
                                 <label>Active</label>
@@ -376,8 +383,9 @@
                                     <td>
                                         @php
                                             $swatchMap = ['red' => '#e74c3c', 'pink' => '#e8b4bc', 'white' => '#f9f3f4', 'yellow' => '#f1c40f', 'purple' => '#9b59b6'];
+                                            $swatchBg = $color->hex_color ?: ($swatchMap[$color->name] ?? 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)');
                                         @endphp
-                                        <div style="width:40px;height:40px;border-radius:50%;background:{{ $swatchMap[$color->name] ?? 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)' }};border:2px solid #ddd;"></div>
+                                        <div style="width:40px;height:40px;border-radius:50%;background:{{ $swatchBg }};border:2px solid #ddd;"></div>
                                     </td>
                                     <td><strong>{{ $color->display_name }}</strong></td>
                                     <td>{{ $color->name }}</td>
@@ -390,6 +398,7 @@
                                                 data-name="{{ $color->name }}"
                                                 data-display-name="{{ $color->display_name }}"
                                                 data-price="{{ $color->price }}"
+                                                data-hex-color="{{ $color->hex_color }}"
                                                 data-sort-order="{{ $color->sort_order }}"
                                                 data-active="{{ $color->is_active ? '1' : '0' }}">
                                             Edit
@@ -819,6 +828,7 @@
                     <div><label>Name (slug)</label><input type="text" name="name" id="edit-color-name" required></div>
                     <div><label>Display Name</label><input type="text" name="display_name" id="edit-color-display-name"></div>
                     <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-color-price" required></div>
+                    <div><label>Hex Color (e.g. #ff5733)</label><input type="text" name="hex_color" id="edit-color-hex" placeholder="#ff5733"></div>
                     <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-color-sort-order"></div>
                     <div>
                         <label>Active</label>
@@ -860,6 +870,33 @@
                 <div style="display:flex;gap:10px;margin-top:14px;">
                     <button type="submit" class="btn-sm btn-ok">Save Changes</button>
                     <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editStyleModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editServicePhotoModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Service Photo</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="action" value="edit_service_photo">
+                <input type="hidden" name="id" id="edit-service-photo-id">
+                <div class="form-grid">
+                    <div>
+                        <label>Category</label>
+                        <select name="category" id="edit-service-photo-category" required>
+                            @foreach ($serviceCategories as $cat)
+                                <option value="{{ $cat }}">{{ $serviceNames[$cat] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div><label>Caption</label><input type="text" name="caption" id="edit-service-photo-caption"></div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editServicePhotoModal').classList.remove('show');">Cancel</button>
                 </div>
             </form>
         </div>
@@ -908,6 +945,7 @@
                 document.getElementById('edit-color-name').value = this.dataset.name;
                 document.getElementById('edit-color-display-name').value = this.dataset.displayName;
                 document.getElementById('edit-color-price').value = this.dataset.price;
+                document.getElementById('edit-color-hex').value = this.dataset.hexColor || '';
                 document.getElementById('edit-color-sort-order').value = this.dataset.sortOrder;
                 document.getElementById('edit-color-active').value = this.dataset.active;
                 document.getElementById('editColorModal').classList.add('show');
@@ -923,6 +961,15 @@
                 document.getElementById('edit-style-sort-order').value = this.dataset.sortOrder;
                 document.getElementById('edit-style-active').value = this.dataset.active;
                 document.getElementById('editStyleModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.edit-service-photo-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-service-photo-id').value = this.dataset.id;
+                document.getElementById('edit-service-photo-caption').value = this.dataset.caption || '';
+                document.getElementById('edit-service-photo-category').value = this.dataset.category;
+                document.getElementById('editServicePhotoModal').classList.add('show');
             });
         });
     </script>

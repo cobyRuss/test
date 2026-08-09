@@ -17,6 +17,7 @@ class CustomizationOption extends Model
         'price',
         'image_url',
         'category',
+        'hex_color',
         'is_active',
         'sort_order',
     ];

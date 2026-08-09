@@ -53,7 +53,7 @@
                                 <div class="color-card" data-name="{{ $color->display_name }}" data-price="{{ $color->price }}"
                                      title="{{ $color->display_name }}"
                                      style="border:3px solid transparent;border-radius:50%;cursor:pointer;text-align:center;transition:all .2s;">
-                                    <div style="width:56px;height:56px;border-radius:50%;background:{{ $swatches[$color->name] ?? $swatchDefault }};border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.12);"></div>
+                                    <div style="width:56px;height:56px;border-radius:50%;background:{{ $color->hex_color ?: ($swatches[$color->name] ?? $swatchDefault) }};border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.12);"></div>
                                     <div style="font-size:0.75rem;color:var(--dark);margin-top:4px;">{{ $color->display_name }}</div>
                                     @if ($color->price > 0)
                                         <div style="font-size:0.7rem;color:var(--accent);">+₱{{ number_format($color->price, 2) }}</div>
