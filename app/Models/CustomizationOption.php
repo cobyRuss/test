@@ -21,4 +21,10 @@ class CustomizationOption extends Model
         'is_active',
         'sort_order',
     ];
+
+    public function variants()
+    {
+        return $this->hasMany(CustomizationOptionVariant::class, 'customization_option_id')
+            ->orderBy('sort_order');
+    }
 }

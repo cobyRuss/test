@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use App\Models\CustomizationOption;
+use App\Models\CustomizationOptionVariant;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ServicePhoto;
@@ -279,6 +280,97 @@ class DashboardController extends Controller
                     session(['active_tab' => 'customization']);
                     break;
 
+                case 'add_filler':
+                    CustomizationOption::query()->create([
+                        'type' => 'filler',
+                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                        'price' => (float) $request->input('price', 0),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'is_active' => $request->boolean('is_active'),
+                        'sort_order' => (int) $request->input('sort_order', 0),
+                    ]);
+                    $message = 'Filler added successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'edit_filler':
+                    $filler = CustomizationOption::query()->find((int) $request->input('id'));
+
+                    if ($filler) {
+                        $data = [
+                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                            'price' => (float) $request->input('price', 0),
+                            'is_active' => $request->boolean('is_active'),
+                            'sort_order' => (int) $request->input('sort_order', 0),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        }
+
+                        $filler->update($data);
+                        $message = 'Filler updated successfully!';
+                    }
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'delete_filler':
+                    CustomizationOption::query()->where('id', (int) $request->input('id'))->delete();
+                    $message = 'Filler deleted successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'add_variant':
+                    CustomizationOptionVariant::query()->create([
+                        'customization_option_id' => (int) $request->input('flower_id'),
+                        'variant_type' => $request->input('variant_type'),
+                        'display_name' => trim((string) $request->input('display_name')),
+                        'price' => (float) $request->input('price', 0),
+                        'hex_color' => $request->input('variant_type') === 'color' ? $this->normalizeHexColor($request->input('hex_color')) : null,
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'is_active' => $request->boolean('is_active', true),
+                        'sort_order' => (int) $request->input('sort_order', 0),
+                    ]);
+                    $message = 'Variant added successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'edit_variant':
+                    $variant = CustomizationOptionVariant::query()->find((int) $request->input('id'));
+
+                    if ($variant) {
+                        $data = [
+                            'customization_option_id' => (int) $request->input('flower_id', $variant->customization_option_id),
+                            'variant_type' => $request->input('variant_type'),
+                            'display_name' => trim((string) $request->input('display_name')),
+                            'price' => (float) $request->input('price', 0),
+                            'hex_color' => $request->input('variant_type') === 'color' ? $this->normalizeHexColor($request->input('hex_color')) : null,
+                            'is_active' => $request->boolean('is_active', true),
+                            'sort_order' => (int) $request->input('sort_order', 0),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        }
+
+                        $variant->update($data);
+                        $message = 'Variant updated successfully!';
+                    }
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'delete_variant':
+                    CustomizationOptionVariant::query()->where('id', (int) $request->input('id'))->delete();
+                    $message = 'Variant deleted successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
                 case 'verify_gcash':
                     DB::table('gcash_payments')->where('id', (int) $request->input('payment_id'))->update([
                         'verified' => true,
@@ -446,6 +538,7 @@ class DashboardController extends Controller
         $customFlowers = CustomizationOption::query()
             ->where('type', 'flower')
             ->orderBy('sort_order')
+            ->with('variants')
             ->get();
 
         $customColors = CustomizationOption::query()
@@ -458,7 +551,12 @@ class DashboardController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return compact('customFlowers', 'customColors', 'customStyles');
+        $customFillers = CustomizationOption::query()
+            ->where('type', 'filler')
+            ->orderBy('sort_order')
+            ->get();
+
+        return compact('customFlowers', 'customColors', 'customStyles', 'customFillers');
     }
 
     private function loadPayments(): array

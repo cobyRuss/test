@@ -351,6 +351,168 @@
                 </div>
 
                 <div class="card">
+                    <h3>Flower Variants (Sizes / Colors)</h3>
+                    <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">A variant price above ₱0 replaces the flower's per-stem price when selected. Leave at ₱0 to keep the flower's base price.</p>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="action" value="add_variant">
+                        <div class="form-grid">
+                            <div>
+                                <label>Flower</label>
+                                <select name="flower_id" required>
+                                    @foreach ($customFlowers as $flower)
+                                        <option value="{{ $flower->id }}">{{ $flower->display_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label>Variant Type</label>
+                                <select name="variant_type" class="variant-type-select" required>
+                                    <option value="size">Size</option>
+                                    <option value="color">Color</option>
+                                </select>
+                            </div>
+                            <div><label>Name (e.g. Red / Large)</label><input type="text" name="display_name" required></div>
+                            <div><label>Price (₱, 0 = keep base)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
+                            <div class="variant-hex-field"><label>Hex Color (for colors)</label><input type="text" name="hex_color" placeholder="#ff5733"></div>
+                            <div><label>Photo (for sizes)</label><input type="file" name="image" accept="image/*"></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Variant</button>
+                    </form>
+
+                    <table class="admin-table" style="margin-top:16px;">
+                        <thead><tr><th>Flower</th><th>Type</th><th>Name</th><th>Price</th><th>Color / Image</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customFlowers as $flower)
+                                @forelse ($flower->variants as $variant)
+                                    <tr>
+                                        <td>{{ $flower->display_name }}</td>
+                                        <td>{{ ucfirst($variant->variant_type) }}</td>
+                                        <td>{{ $variant->display_name }}</td>
+                                        <td>₱{{ number_format($variant->price, 2) }}</td>
+                                        <td>
+                                            @if ($variant->variant_type === 'color' && $variant->hex_color)
+                                                <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:{{ $variant->hex_color }};border:2px solid #ddd;vertical-align:middle;"></span>
+                                            @elseif ($variant->image_url)
+                                                <img src="{{ asset('images/'.$variant->image_url) }}" alt="">
+                                            @else
+                                                <span style="color:#aaa;font-size:0.8rem;">—</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if ($variant->is_active)
+                                                <span class="badge badge-delivered">Active</span>
+                                            @else
+                                                <span class="badge badge-cancelled">Inactive</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <button class="btn-sm btn-edit edit-variant-btn"
+                                                    data-id="{{ $variant->id }}"
+                                                    data-flower-id="{{ $flower->id }}"
+                                                    data-type="{{ $variant->variant_type }}"
+                                                    data-name="{{ $variant->display_name }}"
+                                                    data-price="{{ $variant->price }}"
+                                                    data-hex="{{ $variant->hex_color }}"
+                                                    data-active="{{ $variant->is_active ? '1' : '0' }}"
+                                                    data-sort="{{ $variant->sort_order }}">
+                                                Edit
+                                            </button>
+                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                <input type="hidden" name="action" value="delete_variant">
+                                                <input type="hidden" name="id" value="{{ $variant->id }}">
+                                                <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this variant?');">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td>{{ $flower->display_name }}</td>
+                                        <td colspan="6" class="empty-row" style="padding:12px 0;">No variants yet.</td>
+                                    </tr>
+                                @endforelse
+                            @empty
+                                <tr><td colspan="7" class="empty-row">Add flowers first.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Fillers</h3>
+                    <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Customers can pick each filler only once (but may pick several different fillers).</p>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="action" value="add_filler">
+                        <div class="form-grid">
+                            <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. eucalyptus" required></div>
+                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Eucalyptus"></div>
+                            <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" value="0" required></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div><label>Photo</label><input type="file" name="image" accept="image/*"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Filler</button>
+                    </form>
+
+                    <table class="admin-table" style="margin-top:16px;">
+                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customFillers as $filler)
+                                <tr>
+                                    <td>
+                                        @if ($filler->image_url)
+                                            <img src="{{ asset('images/'.$filler->image_url) }}" alt="">
+                                        @else
+                                            <i class="fas fa-leaf" style="font-size:1.4rem;color:var(--secondary);"></i>
+                                        @endif
+                                    </td>
+                                    <td><strong>{{ $filler->display_name }}</strong></td>
+                                    <td>{{ $filler->name }}</td>
+                                    <td>₱{{ number_format($filler->price, 2) }}</td>
+                                    <td>{{ $filler->sort_order }}</td>
+                                    <td>{{ $filler->is_active ? 'Yes' : 'No' }}</td>
+                                    <td>
+                                        <button class="btn-sm btn-edit edit-filler-btn"
+                                                data-id="{{ $filler->id }}"
+                                                data-name="{{ $filler->name }}"
+                                                data-display-name="{{ $filler->display_name }}"
+                                                data-price="{{ $filler->price }}"
+                                                data-sort-order="{{ $filler->sort_order }}"
+                                                data-active="{{ $filler->is_active ? '1' : '0' }}">
+                                            Edit
+                                        </button>
+                                        <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                            @csrf
+                                            <input type="hidden" name="action" value="delete_filler">
+                                            <input type="hidden" name="id" value="{{ $filler->id }}">
+                                            <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this filler?');">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="empty-row">No fillers yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
                     <h3>Add Wrapper Color</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST">
                         @csrf
@@ -875,6 +1037,79 @@
         </div>
     </div>
 
+    <div class="edit-modal" id="editVariantModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Variant</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="action" value="edit_variant">
+                <input type="hidden" name="id" id="edit-variant-id">
+                <div class="form-grid">
+                    <div>
+                        <label>Flower</label>
+                        <select name="flower_id" id="edit-variant-flower" required>
+                            @foreach ($customFlowers as $flower)
+                                <option value="{{ $flower->id }}">{{ $flower->display_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label>Variant Type</label>
+                        <select name="variant_type" id="edit-variant-type" required>
+                            <option value="size">Size</option>
+                            <option value="color">Color</option>
+                        </select>
+                    </div>
+                    <div><label>Name</label><input type="text" name="display_name" id="edit-variant-name" required></div>
+                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-variant-price"></div>
+                    <div><label>Hex Color</label><input type="text" name="hex_color" id="edit-variant-hex" placeholder="#ff5733"></div>
+                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-variant-sort"></div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-variant-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editVariantModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editFillerModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Filler</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="action" value="edit_filler">
+                <input type="hidden" name="id" id="edit-filler-id">
+                <div class="form-grid">
+                    <div><label>Name (slug)</label><input type="text" name="name" id="edit-filler-name" required></div>
+                    <div><label>Display Name</label><input type="text" name="display_name" id="edit-filler-display-name"></div>
+                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-filler-price" required></div>
+                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-filler-sort-order"></div>
+                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-filler-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editFillerModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="edit-modal" id="editServicePhotoModal">
         <div class="edit-modal-box">
             <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Service Photo</h3>
@@ -971,6 +1206,41 @@
                 document.getElementById('edit-service-photo-category').value = this.dataset.category;
                 document.getElementById('editServicePhotoModal').classList.add('show');
             });
+        });
+
+        document.querySelectorAll('.edit-variant-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-variant-id').value = this.dataset.id;
+                document.getElementById('edit-variant-flower').value = this.dataset.flowerId;
+                document.getElementById('edit-variant-type').value = this.dataset.type;
+                document.getElementById('edit-variant-name').value = this.dataset.name;
+                document.getElementById('edit-variant-price').value = this.dataset.price;
+                document.getElementById('edit-variant-hex').value = this.dataset.hex || '';
+                document.getElementById('edit-variant-active').value = this.dataset.active || '1';
+                document.getElementById('edit-variant-sort').value = this.dataset.sort;
+                document.getElementById('editVariantModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.edit-filler-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-filler-id').value = this.dataset.id;
+                document.getElementById('edit-filler-name').value = this.dataset.name;
+                document.getElementById('edit-filler-display-name').value = this.dataset.displayName;
+                document.getElementById('edit-filler-price').value = this.dataset.price;
+                document.getElementById('edit-filler-sort-order').value = this.dataset.sortOrder;
+                document.getElementById('edit-filler-active').value = this.dataset.active || '1';
+                document.getElementById('editFillerModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.variant-type-select').forEach(sel => {
+            const toggleHex = () => {
+                const hexField = sel.closest('form').querySelector('.variant-hex-field');
+                if (hexField) hexField.style.display = sel.value === 'color' ? '' : 'none';
+            };
+            sel.addEventListener('change', toggleHex);
+            toggleHex();
         });
     </script>
 </body>
