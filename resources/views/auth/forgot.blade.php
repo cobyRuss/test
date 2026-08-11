@@ -52,8 +52,8 @@
                         <label>Verification Code</label>
                         <input type="text" name="code" maxlength="6" placeholder="000000" required autofocus>
                     </div>
-                    @if ($resetCode)
-                        <div class="alert alert-info">Demo mode: your code is <strong>{{ $resetCode }}</strong></div>
+                    @if ($resend)
+                        <div class="alert alert-info">Code expired? <a href="{{ route('forgot') }}">Request a new code</a></div>
                     @endif
                     <button type="submit" name="verify_code" value="1" class="btn" style="width:100%;text-align:center;">
                         <i class="fas fa-check"></i> Verify Code

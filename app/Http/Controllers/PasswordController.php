@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OtpMail;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class PasswordController extends Controller
 {
@@ -30,7 +32,12 @@ class PasswordController extends Controller
                 ]);
 
                 session(['reset_email' => $email]);
-                session(['reset_code' => $code]);
+
+                try {
+                    Mail::to($customer->email)->send(new OtpMail($customer->full_name, $code, $expires));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('OTP email failed: '.$e->getMessage());
+                }
 
                 $step = 2;
                 $success = 'A 6-digit verification code has been sent to your email.';
@@ -83,10 +90,10 @@ class PasswordController extends Controller
             }
         }
 
-        $resetCode = session('reset_code');
+        $resend = $step === 2;
         $resetName = session('reset_customer_name');
 
-        return view('auth.forgot', compact('error', 'success', 'step', 'email', 'resetCode', 'resetName'));
+        return view('auth.forgot', compact('error', 'success', 'step', 'email', 'resetName', 'resend'));
     }
 
     public function showReset(Request $request)

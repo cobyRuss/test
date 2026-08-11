@@ -70,6 +70,10 @@
 
                         @auth('web')
                             <a href="{{ route('account') }}" class="cart-link"><i class="fas fa-user"></i> {{ \Illuminate\Support\Str::before(Auth::guard('web')->user()->full_name, ' ') }}</a>
+                            <form action="{{ route('logout') }}" method="POST" style="margin:0;">
+                                @csrf
+                                <button type="submit" class="cart-link" style="border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                            </form>
                         @else
                             <a href="{{ route('login') }}" class="cart-link"><i class="fas fa-sign-in-alt"></i> Login</a>
                             <a href="{{ route('register') }}" class="cart-link"><i class="fas fa-user-plus"></i> Register</a>

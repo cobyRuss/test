@@ -56,6 +56,7 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 
 Route::get('/forgot', [PasswordController::class, 'forgot'])->name('forgot');
+Route::post('/forgot', [PasswordController::class, 'forgot'])->name('forgot.submit');
 Route::get('/reset', [PasswordController::class, 'showReset'])->name('reset.show');
 Route::post('/reset', [PasswordController::class, 'reset'])->name('reset.submit');
 
