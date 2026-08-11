@@ -59,7 +59,7 @@ class DashboardController extends Controller
                         'description' => $request->input('description'),
                         'price' => $request->input('price'),
                         'category' => $request->input('category'),
-                        'image_url' => $request->input('image_url'),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
                     ]);
                     $message = 'Product added successfully!';
                     break;

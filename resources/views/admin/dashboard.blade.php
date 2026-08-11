@@ -99,7 +99,7 @@
             <div class="tab-panel {{ $activeTab === 'products' ? 'active' : '' }}" id="tab-products">
                 <div class="card">
                     <h3>Add New Product</h3>
-                    <form action="{{ route('admin.dashboard.post') }}" method="POST">
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="action" value="add_product">
                         <div class="form-grid">
@@ -113,7 +113,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div><label>Image filename</label><input type="text" name="image_url" placeholder="e.g. rs.jpg"></div>
+                            <div><label>Product Image</label><input type="file" name="image" accept="image/*"></div>
                             <div style="grid-column: 1 / -1;"><label>Description</label><textarea name="description" rows="2"></textarea></div>
                         </div>
                         <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Product</button>

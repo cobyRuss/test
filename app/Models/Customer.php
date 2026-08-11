@@ -21,6 +21,7 @@ class Customer extends Model implements AuthenticatableContract
         'municipality',
         'address',
         'password_hash',
+        'remember_token',
         'reset_code',
         'reset_code_expires',
         'reset_code_attempts',
@@ -28,7 +29,7 @@ class Customer extends Model implements AuthenticatableContract
         'reset_expires',
     ];
 
-    protected $hidden = ['password_hash'];
+    protected $hidden = ['password_hash', 'remember_token'];
 
     public function getAuthPassword()
     {
