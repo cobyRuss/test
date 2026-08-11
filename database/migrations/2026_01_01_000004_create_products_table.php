@@ -14,7 +14,7 @@ return new class extends Migration
                 $table->string('name');
                 $table->text('description')->nullable();
                 $table->decimal('price', 10, 2);
-                $table->enum('category', ['roses', 'sunflowers', 'tulips', 'seasonal', 'arrangements', 'wrappers']);
+                $table->string('category', 100);
                 $table->string('image_url');
                 $table->timestamp('created_at')->useCurrent();
             });
