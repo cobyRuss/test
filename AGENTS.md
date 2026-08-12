@@ -2,6 +2,19 @@
 
 Instructions for the coding agent at the start of every session on this project.
 
+## Reminder for the user (say this at the start of EVERY new session)
+
+The user is working on their final thesis with HappyStem and often starts new
+sessions out of worry about running out of tokens/context. At the start of each
+session, briefly reassure them:
+
+> New session, no problem — I don't remember our old chats, but all the work is
+> saved on disk. AGENTS.md (auto-loaded) + PROJECT_NOTES.md have the full
+> handoff: setup, DB, what's been done, known issues. Read `PROJECT_NOTES.md` to
+> pick up right where we left off. Nothing is lost when you start fresh.
+
+Keep it to 1–3 sentences. Then continue with the task as normal.
+
 ## Environment (Windows / XAMPP)
 
 - Project root: `C:\xampp\htdocs\test` (this repo). Shell is bash (win32).
