@@ -17,6 +17,8 @@ class CustomizeController extends Controller
         $styles = CustomizationOption::query()->where('type', 'style')->where('is_active', true)->orderBy('sort_order')->get();
         $fillers = CustomizationOption::query()->where('type', 'filler')->where('is_active', true)->orderBy('sort_order')->get();
         $addons = CustomizationOption::query()->where('type', 'addon')->where('is_active', true)->orderBy('sort_order')->get();
+        $ribbons = CustomizationOption::query()->where('type', 'ribbon')->where('is_active', true)->orderBy('sort_order')
+            ->with(['variants' => fn ($q) => $q->where('is_active', true)])->get();
         $presets = CustomizationPreset::query()->where('is_active', true)->get();
 
         $savedDesigns = collect();
@@ -27,6 +29,6 @@ class CustomizeController extends Controller
                 ->get();
         }
 
-        return view('customize.index', compact('flowers', 'colors', 'styles', 'fillers', 'addons', 'presets', 'savedDesigns'));
+        return view('customize.index', compact('flowers', 'colors', 'styles', 'fillers', 'addons', 'ribbons', 'presets', 'savedDesigns'));
     }
 }

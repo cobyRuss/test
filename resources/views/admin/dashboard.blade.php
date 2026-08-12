@@ -375,7 +375,7 @@
                             <div><label>Name (e.g. Red / Large)</label><input type="text" name="display_name" required></div>
                             <div><label>Price (₱, 0 = keep base)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
                             <div class="variant-hex-field"><label>Hex Color (for colors)</label><input type="text" name="hex_color" placeholder="#ff5733"></div>
-                            <div><label>Photo (for sizes)</label><input type="file" name="image" accept="image/*"></div>
+                            <div><label>Photo (sizes; or pattern image for colors)</label><input type="file" name="image" accept="image/*"></div>
                             <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
                             <div>
                                 <label>Active</label>
@@ -399,10 +399,10 @@
                                         <td>{{ $variant->display_name }}</td>
                                         <td>₱{{ number_format($variant->price, 2) }}</td>
                                         <td>
-                                            @if ($variant->variant_type === 'color' && $variant->hex_color)
+                                            @if ($variant->image_url)
+                                                <img src="{{ asset('images/'.$variant->image_url) }}" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid #ddd;vertical-align:middle;">
+                                            @elseif ($variant->variant_type === 'color' && $variant->hex_color)
                                                 <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:{{ $variant->hex_color }};border:2px solid #ddd;vertical-align:middle;"></span>
-                                            @elseif ($variant->image_url)
-                                                <img src="{{ asset('images/'.$variant->image_url) }}" alt="">
                                             @else
                                                 <span style="color:#aaa;font-size:0.8rem;">—</span>
                                             @endif
@@ -514,7 +514,7 @@
 
                 <div class="card">
                     <h3>Add Wrapper Color</h3>
-                    <form action="{{ route('admin.dashboard.post') }}" method="POST">
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="action" value="add_custom_color">
                         <div class="form-grid">
@@ -522,6 +522,7 @@
                             <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Red"></div>
                             <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
                             <div><label>Hex Color (e.g. #ff5733)</label><input type="text" name="hex_color" placeholder="#ff5733"></div>
+                            <div><label>Pattern Image (optional — overrides hex)</label><input type="file" name="image" accept="image/*"></div>
                             <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
                             <div>
                                 <label>Active</label>
@@ -547,7 +548,11 @@
                                             $swatchMap = ['red' => '#e74c3c', 'pink' => '#e8b4bc', 'white' => '#f9f3f4', 'yellow' => '#f1c40f', 'purple' => '#9b59b6'];
                                             $swatchBg = $color->hex_color ?: ($swatchMap[$color->name] ?? 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)');
                                         @endphp
-                                        <div style="width:40px;height:40px;border-radius:50%;background:{{ $swatchBg }};border:2px solid #ddd;"></div>
+                                        @if ($color->image_url)
+                                            <img src="{{ asset('images/'.$color->image_url) }}" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #ddd;">
+                                        @else
+                                            <div style="width:40px;height:40px;border-radius:50%;background:{{ $swatchBg }};border:2px solid #ddd;"></div>
+                                        @endif
                                     </td>
                                     <td><strong>{{ $color->display_name }}</strong></td>
                                     <td>{{ $color->name }}</td>
@@ -561,6 +566,7 @@
                                                 data-display-name="{{ $color->display_name }}"
                                                 data-price="{{ $color->price }}"
                                                 data-hex-color="{{ $color->hex_color }}"
+                                                data-image="{{ $color->image_url }}"
                                                 data-sort-order="{{ $color->sort_order }}"
                                                 data-active="{{ $color->is_active ? '1' : '0' }}">
                                             Edit
@@ -575,6 +581,171 @@
                                 </tr>
                             @empty
                                 <tr><td colspan="7" class="empty-row">No wrapper colors yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Add Ribbon</h3>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="action" value="add_ribbon">
+                        <div class="form-grid">
+                            <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. satin_ribbon" required></div>
+                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Satin Ribbon"></div>
+                            <div><label>Price (₱, 0 if set per size/color)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
+                            <div><label>Photo (optional)</label><input type="file" name="image" accept="image/*"></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Ribbon</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Ribbons ({{ $customRibbons->count() }})</h3>
+                    <table class="admin-table">
+                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customRibbons as $ribbon)
+                                <tr>
+                                    <td>
+                                        @if ($ribbon->image_url)
+                                            <img src="{{ asset('images/'.$ribbon->image_url) }}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:2px solid #ddd;">
+                                        @else
+                                            <i class="fas fa-ribbon" style="font-size:1.4rem;color:var(--secondary);"></i>
+                                        @endif
+                                    </td>
+                                    <td><strong>{{ $ribbon->display_name }}</strong></td>
+                                    <td>{{ $ribbon->name }}</td>
+                                    <td>₱{{ number_format($ribbon->price, 2) }}</td>
+                                    <td>{{ $ribbon->sort_order }}</td>
+                                    <td>{{ $ribbon->is_active ? 'Yes' : 'No' }}</td>
+                                    <td>
+                                        <button class="btn-sm btn-edit edit-ribbon-btn"
+                                                data-id="{{ $ribbon->id }}"
+                                                data-name="{{ $ribbon->name }}"
+                                                data-display-name="{{ $ribbon->display_name }}"
+                                                data-price="{{ $ribbon->price }}"
+                                                data-image="{{ $ribbon->image_url }}"
+                                                data-sort-order="{{ $ribbon->sort_order }}"
+                                                data-active="{{ $ribbon->is_active ? '1' : '0' }}">
+                                            Edit
+                                        </button>
+                                        <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                            @csrf
+                                            <input type="hidden" name="action" value="delete_ribbon">
+                                            <input type="hidden" name="id" value="{{ $ribbon->id }}">
+                                            <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this ribbon and all its color/size variants?');">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="empty-row">No ribbons yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Ribbon Variants (Colors / Sizes)</h3>
+                    <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Add a Color (hex or pattern image) or a Size (e.g. 1 inch) to each ribbon. If the size price is ₱0 the color price is used.</p>
+                    <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="action" value="add_variant">
+                        <div class="form-grid">
+                            <div>
+                                <label>Ribbon</label>
+                                <select name="flower_id" required>
+                                    @foreach ($customRibbons as $ribbon)
+                                        <option value="{{ $ribbon->id }}">{{ $ribbon->display_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label>Variant Type</label>
+                                <select name="variant_type" class="variant-type-select" required>
+                                    <option value="color">Color</option>
+                                    <option value="size">Size</option>
+                                </select>
+                            </div>
+                            <div><label>Name (e.g. Red / 1 inch)</label><input type="text" name="display_name" required></div>
+                            <div><label>Price (₱, 0 = free)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
+                            <div class="variant-hex-field"><label>Hex Color (for colors)</label><input type="text" name="hex_color" placeholder="#ff5733"></div>
+                            <div><label>Pattern Image (optional — overrides hex)</label><input type="file" name="image" accept="image/*"></div>
+                            <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Ribbon Variant</button>
+                    </form>
+
+                    <table class="admin-table" style="margin-top:16px;">
+                        <thead><tr><th>Ribbon</th><th>Type</th><th>Name</th><th>Price</th><th>Color / Image</th><th>Active</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @forelse ($customRibbons as $ribbon)
+                                @forelse ($ribbon->variants as $variant)
+                                    <tr>
+                                        <td>{{ $ribbon->display_name }}</td>
+                                        <td>{{ ucfirst($variant->variant_type) }}</td>
+                                        <td>{{ $variant->display_name }}</td>
+                                        <td>₱{{ number_format($variant->price, 2) }}</td>
+                                        <td>
+                                            @if ($variant->image_url)
+                                                <img src="{{ asset('images/'.$variant->image_url) }}" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid #ddd;vertical-align:middle;">
+                                            @elseif ($variant->variant_type === 'color' && $variant->hex_color)
+                                                <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:{{ $variant->hex_color }};border:2px solid #ddd;vertical-align:middle;"></span>
+                                            @else
+                                                <span style="color:#aaa;font-size:0.8rem;">—</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if ($variant->is_active)
+                                                <span class="badge badge-delivered">Active</span>
+                                            @else
+                                                <span class="badge badge-cancelled">Inactive</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <button class="btn-sm btn-edit edit-variant-btn"
+                                                    data-id="{{ $variant->id }}"
+                                                    data-flower-id="{{ $ribbon->id }}"
+                                                    data-type="{{ $variant->variant_type }}"
+                                                    data-name="{{ $variant->display_name }}"
+                                                    data-price="{{ $variant->price }}"
+                                                    data-hex="{{ $variant->hex_color }}"
+                                                    data-active="{{ $variant->is_active ? '1' : '0' }}"
+                                                    data-sort="{{ $variant->sort_order }}">
+                                                Edit
+                                            </button>
+                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                <input type="hidden" name="action" value="delete_variant">
+                                                <input type="hidden" name="id" value="{{ $variant->id }}">
+                                                <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this variant?');">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td>{{ $ribbon->display_name }}</td>
+                                        <td colspan="6" class="empty-row" style="padding:12px 0;">No variants yet.</td>
+                                    </tr>
+                                @endforelse
+                            @empty
+                                <tr><td colspan="7" class="empty-row">Add ribbons first.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -982,7 +1153,7 @@
     <div class="edit-modal" id="editColorModal">
         <div class="edit-modal-box">
             <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Wrapper Color</h3>
-            <form action="{{ route('admin.dashboard.post') }}" method="POST">
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="action" value="edit_custom_color">
                 <input type="hidden" name="id" id="edit-color-id">
@@ -991,6 +1162,7 @@
                     <div><label>Display Name</label><input type="text" name="display_name" id="edit-color-display-name"></div>
                     <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-color-price" required></div>
                     <div><label>Hex Color (e.g. #ff5733)</label><input type="text" name="hex_color" id="edit-color-hex" placeholder="#ff5733"></div>
+                    <div><label>Replace Pattern Image (overrides hex)</label><input type="file" name="image" accept="image/*"></div>
                     <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-color-sort-order"></div>
                     <div>
                         <label>Active</label>
@@ -999,10 +1171,42 @@
                             <option value="0">No</option>
                         </select>
                     </div>
+                    <div>
+                        <label><input type="checkbox" name="clear_image" value="1"> Remove current pattern image</label>
+                    </div>
                 </div>
                 <div style="display:flex;gap:10px;margin-top:14px;">
                     <button type="submit" class="btn-sm btn-ok">Save Changes</button>
                     <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editColorModal').classList.remove('show');">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editRibbonModal">
+        <div class="edit-modal-box">
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Ribbon</h3>
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="action" value="edit_ribbon">
+                <input type="hidden" name="id" id="edit-ribbon-id">
+                <div class="form-grid">
+                    <div><label>Name (slug)</label><input type="text" name="name" id="edit-ribbon-name" required></div>
+                    <div><label>Display Name</label><input type="text" name="display_name" id="edit-ribbon-display-name"></div>
+                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-ribbon-price" required></div>
+                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-ribbon-sort-order"></div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-ribbon-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
+                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editRibbonModal').classList.remove('show');">Cancel</button>
                 </div>
             </form>
         </div>
@@ -1062,8 +1266,8 @@
                     </div>
                     <div><label>Name</label><input type="text" name="display_name" id="edit-variant-name" required></div>
                     <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-variant-price"></div>
-                    <div><label>Hex Color</label><input type="text" name="hex_color" id="edit-variant-hex" placeholder="#ff5733"></div>
-                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
+                    <div><label>Hex Color (for colors)</label><input type="text" name="hex_color" id="edit-variant-hex" placeholder="#ff5733"></div>
+                    <div><label>Replace Photo (sizes; or pattern image for colors)</label><input type="file" name="image" accept="image/*"></div>
                     <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-variant-sort"></div>
                     <div>
                         <label>Active</label>
@@ -1196,6 +1400,18 @@
                 document.getElementById('edit-style-sort-order').value = this.dataset.sortOrder;
                 document.getElementById('edit-style-active').value = this.dataset.active;
                 document.getElementById('editStyleModal').classList.add('show');
+            });
+        });
+
+        document.querySelectorAll('.edit-ribbon-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-ribbon-id').value = this.dataset.id;
+                document.getElementById('edit-ribbon-name').value = this.dataset.name;
+                document.getElementById('edit-ribbon-display-name').value = this.dataset.displayName;
+                document.getElementById('edit-ribbon-price').value = this.dataset.price;
+                document.getElementById('edit-ribbon-sort-order').value = this.dataset.sortOrder;
+                document.getElementById('edit-ribbon-active').value = this.dataset.active;
+                document.getElementById('editRibbonModal').classList.add('show');
             });
         });
 

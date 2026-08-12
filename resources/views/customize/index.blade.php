@@ -100,8 +100,16 @@
                                                                                 : 'linear-gradient(135deg,#ffffff,#e8b4bc)')
                                                                             : 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)');
                                                                 @endphp
-                                                                <span class="color-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}"
-                                                                      title="{{ $variant->display_name }}" style="background:{{ $bg }};"></span>
+                                                                @if ($variant->image_url)
+                                                                    <span class="color-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}"
+                                                                          title="{{ $variant->display_name }}" style="overflow:hidden;">
+                                                                        <img src="{{ asset('images/'.$variant->image_url) }}" alt="{{ $variant->display_name }}"
+                                                                             style="width:100%;height:100%;object-fit:cover;display:block;">
+                                                                    </span>
+                                                                @else
+                                                                    <span class="color-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}"
+                                                                          title="{{ $variant->display_name }}" style="background:{{ $bg }};"></span>
+                                                                @endif
                                                             @endforeach
                                                         </div>
                                                     </div>
@@ -158,7 +166,11 @@
                                     <div class="color-card" data-name="{{ $color->display_name }}" data-price="{{ $color->price }}"
                                          title="{{ $color->display_name }}"
                                          style="border:3px solid transparent;border-radius:50%;cursor:pointer;text-align:center;transition:all .2s;">
-                                        <div style="width:56px;height:56px;border-radius:50%;background:{{ $color->hex_color ?: ($swatches[$color->name] ?? $swatchDefault) }};border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.12);"></div>
+                                        @if ($color->image_url)
+                                            <div style="width:56px;height:56px;border-radius:50%;background:center/cover url('{{ asset('images/'.$color->image_url) }}');border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.12);"></div>
+                                        @else
+                                            <div style="width:56px;height:56px;border-radius:50%;background:{{ $color->hex_color ?: ($swatches[$color->name] ?? $swatchDefault) }};border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.12);"></div>
+                                        @endif
                                         <div style="font-size:0.75rem;color:var(--dark);margin-top:4px;">{{ $color->display_name }}</div>
                                         @if ($color->price > 0)
                                             <div style="font-size:0.7rem;color:var(--accent);">+₱{{ number_format($color->price, 2) }}</div>
@@ -166,6 +178,51 @@
                                     </div>
                                 @endforeach
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="customize-section">
+                        <button type="button" class="section-toggle">Ribbon</button>
+                        <div class="section-body">
+                            @forelse ($ribbons as $ribbon)
+                                @php
+                                    $rColors = $ribbon->variants->where('variant_type', 'color');
+                                    $rSizes = $ribbon->variants->where('variant_type', 'size');
+                                @endphp
+                                <div class="ribbon-card" data-id="{{ $ribbon->id }}" data-name="{{ $ribbon->display_name }}"
+                                     style="border:2px solid #eee;border-radius:10px;padding:12px;margin-bottom:12px;">
+                                    <div style="font-weight:700;color:var(--dark);margin-bottom:8px;">{{ $ribbon->display_name }}</div>
+                                    @if ($rColors->count())
+                                        <div class="v-label">Color</div>
+                                        <div class="v-row" style="justify-content:flex-start;margin-bottom:8px;">
+                                            @foreach ($rColors as $variant)
+                                                <span class="color-option ribbon-color" data-name="{{ $variant->display_name }}"
+                                                      data-price="{{ $variant->price }}" data-hex="{{ $variant->hex_color }}"
+                                                      data-image="{{ $variant->image_url }}" title="{{ $variant->display_name }}">
+                                                    @if ($variant->image_url)
+                                                        <img src="{{ asset('images/'.$variant->image_url) }}" alt="{{ $variant->display_name }}"
+                                                             style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">
+                                                    @else
+                                                        <span class="thumb-swatch" style="display:block;width:100%;height:100%;border-radius:50%;background:{{ $variant->hex_color ?: '#ccc' }};"></span>
+                                                    @endif
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                    @if ($rSizes->count())
+                                        <div class="v-label">Size</div>
+                                        <div class="v-row" style="justify-content:flex-start;">
+                                            @foreach ($rSizes as $variant)
+                                                <button type="button" class="size-option ribbon-size" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}">
+                                                    {{ $variant->display_name }}@if ($variant->price > 0) <span style="color:var(--accent);font-weight:700;">₱{{ number_format($variant->price, 2) }}</span>@endif
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @empty
+                                <p style="color:var(--secondary);font-size:0.88rem;">No ribbon options available yet.</p>
+                            @endforelse
                         </div>
                     </div>
 
@@ -315,6 +372,77 @@
         });
     });
 
+    let ribbon = null;
+    document.querySelectorAll('.ribbon-card').forEach(card => {
+        const id = card.dataset.id, name = card.dataset.name;
+        const clearOtherCards = () => {
+            document.querySelectorAll('.ribbon-card').forEach(c => {
+                if (c === card) return;
+                c.querySelectorAll('.ribbon-color, .ribbon-size').forEach(x => x.classList.remove('selected'));
+            });
+        };
+        const ensureRibbon = () => {
+            if (!ribbon || ribbon.id !== id) {
+                clearOtherCards();
+                ribbon = { id: id, name: name, color: null, size: null };
+            }
+        };
+        const dropIfEmpty = () => {
+            if (ribbon && ribbon.id === id && !ribbon.color && !ribbon.size) {
+                ribbon = null;
+            }
+        };
+        card.querySelectorAll('.ribbon-color').forEach(opt => {
+            opt.addEventListener('click', () => {
+                ensureRibbon();
+                const wasSelected = opt.classList.contains('selected');
+                card.querySelectorAll('.ribbon-color').forEach(x => x.classList.remove('selected'));
+                if (wasSelected) {
+                    ribbon.color = null;
+                } else {
+                    opt.classList.add('selected');
+                    ribbon.color = {
+                        name: opt.dataset.name,
+                        price: parseFloat(opt.dataset.price || 0),
+                        hex: opt.dataset.hex || '',
+                        image: opt.dataset.image || ''
+                    };
+                }
+                dropIfEmpty();
+                recompute();
+            });
+        });
+        card.querySelectorAll('.ribbon-size').forEach(opt => {
+            opt.addEventListener('click', () => {
+                ensureRibbon();
+                const wasSelected = opt.classList.contains('selected');
+                card.querySelectorAll('.ribbon-size').forEach(x => x.classList.remove('selected'));
+                if (wasSelected) {
+                    ribbon.size = null;
+                } else {
+                    opt.classList.add('selected');
+                    ribbon.size = { name: opt.dataset.name, price: parseFloat(opt.dataset.price || 0) };
+                }
+                dropIfEmpty();
+                recompute();
+            });
+        });
+    });
+
+    function ribbonPrice() {
+        if (!ribbon) return 0;
+        if (ribbon.size && parseFloat(ribbon.size.price) > 0) return parseFloat(ribbon.size.price);
+        if (ribbon.color && parseFloat(ribbon.color.price) > 0) return parseFloat(ribbon.color.price);
+        return 0;
+    }
+    function ribbonLabel() {
+        if (!ribbon) return '';
+        const parts = [];
+        if (ribbon.color) parts.push(ribbon.color.name);
+        if (ribbon.size) parts.push(ribbon.size.name);
+        return ribbon.name + (parts.length ? ' (' + parts.join(', ') + ')' : '');
+    }
+
     document.querySelectorAll('.section-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
             const body = btn.nextElementSibling;
@@ -355,7 +483,7 @@
 
     function renderThumbs(sel, selF) {
         const box = document.getElementById('pickedThumbs');
-        if (!sel.length && !selF.length && !wrapper && !style) {
+        if (!sel.length && !selF.length && !wrapper && !style && !ribbon) {
             box.innerHTML = '<p style="color:var(--secondary);font-size:0.88rem;">Nothing picked yet.</p>';
             return;
         }
@@ -365,6 +493,12 @@
         });
         selF.forEach(f => html += thumbBox(f.image, f.name, f.qty > 1 ? f.qty : ''));
         if (wrapper) html += swatchBox(wrapper.name, wrapper.hex);
+        if (ribbon) {
+            const bg = ribbon.color?.hex || 'linear-gradient(135deg,#d4af37,#e8b4bc)';
+            html += ribbon.color?.image
+                ? '<div class="thumb-box" title="Ribbon: ' + ribbonLabel() + '"><img src="{{ asset('images/') }}/' + ribbon.color.image + '" alt=""></div>'
+                : '<div class="thumb-box" title="Ribbon: ' + ribbonLabel() + '"><span class="thumb-swatch" style="background:' + bg + '"></span></div>';
+        }
         if (style) html += thumbBox(style.image, 'Style: ' + style.name, '');
         box.innerHTML = html;
     }
@@ -390,6 +524,11 @@
             total += wrapper.price;
             lines.push('<p>Wrapper: <span class="var">' + wrapper.name + '</span>' + (wrapper.price > 0 ? ' (+&#8369;' + wrapper.price.toFixed(2) + ')' : '') + '</p>');
         }
+        if (ribbon) {
+            const rp = ribbonPrice();
+            total += rp;
+            lines.push('<p>Ribbon: <span class="var">' + ribbonLabel() + '</span>' + (rp > 0 ? ' (+&#8369;' + rp.toFixed(2) + ')' : '') + '</p>');
+        }
         if (style) {
             total += style.price;
             lines.push('<p>Style: <span class="var">' + style.name + '</span> (+&#8369;' + style.price.toFixed(2) + ')</p>');
@@ -406,6 +545,7 @@
         });
         selectedFillers().forEach(f => parts.push(f.name + ' x' + f.qty));
         if (wrapper) parts.push('Wrapper: ' + wrapper.name);
+        if (ribbon) parts.push('Ribbon: ' + ribbonLabel());
         if (style) parts.push('Style: ' + style.name);
         return parts.join('; ');
     }

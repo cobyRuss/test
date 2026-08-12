@@ -206,6 +206,7 @@ class DashboardController extends Controller
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
                         'is_active' => $request->boolean('is_active'),
                         'sort_order' => (int) $request->input('sort_order', 0),
                     ]);
@@ -217,14 +218,24 @@ class DashboardController extends Controller
                     $color = CustomizationOption::query()->find((int) $request->input('id'));
 
                     if ($color) {
-                        $color->update([
+                        $data = [
                             'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
                             'is_active' => $request->boolean('is_active'),
                             'sort_order' => (int) $request->input('sort_order', 0),
-                        ]);
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        } elseif ($request->boolean('clear_image')) {
+                            $data['image_url'] = null;
+                        }
+
+                        $color->update($data);
                         $message = 'Wrapper color updated successfully!';
                     }
                     session(['active_tab' => 'customization']);
@@ -233,6 +244,53 @@ class DashboardController extends Controller
                 case 'delete_custom_color':
                     CustomizationOption::query()->where('id', (int) $request->input('id'))->delete();
                     $message = 'Wrapper color deleted successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'add_ribbon':
+                    CustomizationOption::query()->create([
+                        'type' => 'ribbon',
+                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                        'price' => (float) $request->input('price', 0),
+                        'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'is_active' => $request->boolean('is_active'),
+                        'sort_order' => (int) $request->input('sort_order', 0),
+                    ]);
+                    $message = 'Ribbon added successfully!';
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'edit_ribbon':
+                    $ribbon = CustomizationOption::query()->find((int) $request->input('id'));
+
+                    if ($ribbon) {
+                        $data = [
+                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                            'price' => (float) $request->input('price', 0),
+                            'is_active' => $request->boolean('is_active'),
+                            'sort_order' => (int) $request->input('sort_order', 0),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        } elseif ($request->boolean('clear_image')) {
+                            $data['image_url'] = null;
+                        }
+
+                        $ribbon->update($data);
+                        $message = 'Ribbon updated successfully!';
+                    }
+                    session(['active_tab' => 'customization']);
+                    break;
+
+                case 'delete_ribbon':
+                    CustomizationOption::query()->where('id', (int) $request->input('id'))->delete();
+                    CustomizationOptionVariant::query()->where('customization_option_id', (int) $request->input('id'))->delete();
+                    $message = 'Ribbon deleted successfully!';
                     session(['active_tab' => 'customization']);
                     break;
 
@@ -556,7 +614,13 @@ class DashboardController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return compact('customFlowers', 'customColors', 'customStyles', 'customFillers');
+        $customRibbons = CustomizationOption::query()
+            ->where('type', 'ribbon')
+            ->orderBy('sort_order')
+            ->with('variants')
+            ->get();
+
+        return compact('customFlowers', 'customColors', 'customStyles', 'customFillers', 'customRibbons');
     }
 
     private function loadPayments(): array
