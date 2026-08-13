@@ -79,6 +79,17 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   flower form/table/modal show Stock Qty. Seeder links products to flowers by category.
 - Fixed/checked intermittent **419 "Page Expired"** on login (CSRF): verified sessions
   table exists; was a stale-session/cookie issue, not a bug.
+- **Admin flowers table cleaned up** (Customization tab):
+  - No more slug/`name` column or slug input field. Slugs are auto-derived from the
+    Display Name server-side in `DashboardController::slugifyFlowerName()` ("Local Roses"
+    -> `local_roses`; empty -> `flower_<timestamp>`), so the internal `name` column still
+    gets populated but is never shown or typed by hand.
+  - Inline editing: click display name / name / price / stock / sort right in the table;
+    the row's Save button submits everything (shared hidden `flowerEditForm`). No Edit modal.
+  - Active is a toggle switch (green = on, red = off).
+  - Thumbnail is clickable -> enlarges in a lightbox with a "Replace photo" option that
+    picks a new file; the new file submits with the next Save on that row.
+  - Delete is a trash icon with a confirm.
 
 ## Known issues / gotchas
 
@@ -97,4 +108,5 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 - `customization_option_variants`: `variant_type` in (size, color). Flowers and ribbons
   use these. `image_url` = pattern/size image; `hex_color` = solid swatch color.
 - Flowers: per-stem price on the option; size/color variants can override price (>0 replaces base).
+  The `name` column is a slug derived from `display_name` — treat it as internal, not user-facing.
 - Ribbons: price = size variant price if >0, else color variant price, else 0.

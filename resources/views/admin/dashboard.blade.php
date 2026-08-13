@@ -61,6 +61,23 @@
         .msg-item strong { color: #5a4a4a; }
         .msg-item .msg-meta { font-size: 0.78rem; color: #8a9b6e; margin-top: 2px; }
         .empty-row { text-align: center; padding: 40px 0; color: #8a8a8a; }
+        .inline-edit { border: 1px solid transparent; background: transparent; font: inherit; color: inherit; padding: 4px 6px; border-radius: 5px; }
+        .inline-edit:hover { border-color: #e8b4bc; background: #fdf7f8; }
+        .inline-edit:focus { border-color: #d17b88; background: #fff; outline: none; box-shadow: 0 0 0 2px rgba(209,123,136,0.15); }
+        .inline-edit-lg { font-weight: 700; font-size: 0.95rem; min-width: 90px; }
+        .inline-edit-sm { font-size: 0.78rem; color: #8a8a8a; min-width: 70px; }
+        .inline-edit-num { width: 62px; text-align: center; }
+        .inline-edit-num.oos { color: #c0392b; font-weight: 700; }
+        .money { font-weight: 600; color: #5a4a4a; }
+        .oos-badge { display: block; margin-top: 3px; font-size: 0.68rem; background: #fdecea; color: #c0392b; padding: 1px 8px; border-radius: 10px; text-align: center; }
+        .flower-thumb { cursor: zoom-in; }
+        .flower-thumb-placeholder { font-size: 1.6rem; color: #8a9b6e; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider { position: absolute; cursor: pointer; inset: 0; background: #c94a4a; transition: 0.25s; border-radius: 24px; }
+        .switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; transition: 0.25s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .switch input:checked + .slider { background: #2e7d32; }
+        .switch input:checked + .slider::before { transform: translateX(20px); }
         @media (max-width: 900px) { .admin-body { flex-direction: column; } .admin-nav { width: 100%; display: flex; overflow-x: auto; padding: 8px 0; } .admin-nav button { border-left: none; border-bottom: 3px solid transparent; width: auto; padding: 10px 16px; white-space: nowrap; } .admin-nav button.active { border-bottom-color: #d17b88; } }
     </style>
 </head>
@@ -317,8 +334,7 @@
                         @csrf
                         <input type="hidden" name="action" value="add_custom_flower">
                         <div class="form-grid">
-                            <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. rose" required></div>
-                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Roses"></div>
+                            <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Roses" required></div>
                             <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" required></div>
                             <div><label>Stock Qty (0 = out of stock)</label><input type="number" min="0" name="stock_quantity" value="100" required></div>
                             <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
@@ -337,51 +353,50 @@
 
                 <div class="card">
                     <h3>Flowers ({{ $customFlowers->count() }})</h3>
+                    <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Click any value to edit it, then press <strong>Save</strong>. Click a photo to enlarge it and replace it.</p>
                     <table class="admin-table">
-                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Stock</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <thead><tr><th></th><th>Display Name</th><th>Price</th><th>Stock</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
                         <tbody>
                             @forelse ($customFlowers as $flower)
-                                <tr>
+                                <tr class="flower-edit-row" data-id="{{ $flower->id }}">
                                     <td>
                                         @if ($flower->image_url)
-                                            <img src="{{ asset('images/'.$flower->image_url) }}" alt="">
+                                            <img class="flower-thumb" data-row="{{ $flower->id }}"
+                                                 src="{{ asset('images/'.$flower->image_url) }}" alt="{{ $flower->display_name }}" title="Click to enlarge / replace">
                                         @else
-                                            <i class="fas fa-seedling" style="font-size:1.4rem;color:#8a9b6e;"></i>
+                                            <i class="fas fa-seedling flower-thumb flower-thumb-placeholder" data-row="{{ $flower->id }}" title="Click to add photo"></i>
                                         @endif
                                     </td>
-                                    <td><strong>{{ $flower->display_name }}</strong></td>
-                                    <td>{{ $flower->name }}</td>
-                                    <td>₱{{ number_format($flower->price, 2) }}</td>
                                     <td>
-                                        @if ((int) $flower->stock_quantity > 0)
-                                            {{ $flower->stock_quantity }}
-                                        @else
-                                            <span style="display:inline-block;background:#fdecea;color:#c0392b;border-radius:20px;padding:2px 10px;font-size:0.75rem;">Out of stock</span>
+                                        <input class="inline-edit inline-edit-lg" type="text" name="display_name" value="{{ $flower->display_name }}" title="Click to edit display name">
+                                        <br>
+                                        <input class="inline-edit inline-edit-sm" type="text" name="name" value="{{ $flower->name }}" title="Click to edit name">
+                                    </td>
+                                    <td>
+                                        <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" name="price" value="{{ $flower->price }}" title="Click to edit price">
+                                    </td>
+                                    <td>
+                                        <input class="inline-edit inline-edit-num {{ (int) $flower->stock_quantity <= 0 ? 'oos' : '' }}" type="number" min="0" name="stock_quantity" value="{{ $flower->stock_quantity }}" title="Click to edit stock (0 = out of stock)">
+                                        @if ((int) $flower->stock_quantity <= 0)
+                                            <span class="oos-badge">Out of stock</span>
                                         @endif
                                     </td>
-                                    <td>{{ $flower->sort_order }}</td>
-                                    <td>{{ $flower->is_active ? 'Yes' : 'No' }}</td>
                                     <td>
-                                        <button class="btn-sm btn-edit edit-flower-btn"
-                                                data-id="{{ $flower->id }}"
-                                                data-name="{{ $flower->name }}"
-                                                data-display-name="{{ $flower->display_name }}"
-                                                data-price="{{ $flower->price }}"
-                                                data-stock="{{ $flower->stock_quantity }}"
-                                                data-sort-order="{{ $flower->sort_order }}"
-                                                data-active="{{ $flower->is_active ? '1' : '0' }}">
-                                            Edit
-                                        </button>
-                                        <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
-                                            @csrf
-                                            <input type="hidden" name="action" value="delete_custom_flower">
-                                            <input type="hidden" name="id" value="{{ $flower->id }}">
-                                            <button type="submit" class="btn-sm btn-del" onclick="return confirm('Delete this flower?');">Delete</button>
-                                        </form>
+                                        <input class="inline-edit inline-edit-num" type="number" min="0" name="sort_order" value="{{ $flower->sort_order }}" title="Click to edit sort order">
+                                    </td>
+                                    <td>
+                                        <label class="switch">
+                                            <input type="checkbox" class="flower-active-check" @checked($flower->is_active)>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn-sm btn-ok save-flower-btn"><i class="fas fa-save"></i> Save</button>
+                                        <button type="button" class="btn-sm btn-del delete-flower-btn" data-id="{{ $flower->id }}"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="empty-row">No flowers yet.</td></tr>
+                                <tr><td colspan="7" class="empty-row">No flowers yet.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -1174,33 +1189,41 @@
         </div>
     </div>
 
-    <div class="edit-modal" id="editFlowerModal">
+    {{-- Hidden form used by the inline-edit flowers table --}}
+    <form id="flowerEditForm" action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" style="display:none;">
+        @csrf
+        <input type="hidden" name="action" value="edit_custom_flower">
+        <input type="hidden" name="id" id="flower-edit-id">
+        <input type="hidden" name="display_name" id="flower-edit-display-name">
+        <input type="hidden" name="name" id="flower-edit-name">
+        <input type="hidden" name="price" id="flower-edit-price">
+        <input type="hidden" name="stock_quantity" id="flower-edit-stock">
+        <input type="hidden" name="sort_order" id="flower-edit-sort">
+        <input type="hidden" name="is_active" id="flower-edit-active" value="1">
+        <input type="file" name="image" id="flower-edit-image" accept="image/*">
+    </form>
+
+    <form id="flowerDeleteForm" action="{{ route('admin.dashboard.post') }}" method="POST" style="display:none;">
+        @csrf
+        <input type="hidden" name="action" value="delete_custom_flower">
+        <input type="hidden" name="id" id="flower-delete-id">
+    </form>
+
+    {{-- Flower photo lightbox: click thumbnail to enlarge, then replace --}}
+    <div class="edit-modal" id="flowerLightbox">
         <div class="edit-modal-box">
-            <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Flower</h3>
-            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <input type="hidden" name="action" value="edit_custom_flower">
-                <input type="hidden" name="id" id="edit-flower-id">
-                <div class="form-grid">
-                    <div><label>Name (slug)</label><input type="text" name="name" id="edit-flower-name" required></div>
-                    <div><label>Display Name</label><input type="text" name="display_name" id="edit-flower-display-name"></div>
-                    <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-flower-price" required></div>
-                    <div><label>Stock Qty (0 = out of stock)</label><input type="number" min="0" name="stock_quantity" id="edit-flower-stock" required></div>
-                    <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-flower-sort-order"></div>
-                    <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
-                    <div>
-                        <label>Active</label>
-                        <select name="is_active" id="edit-flower-active">
-                            <option value="1">Yes</option>
-                            <option value="0">No</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="display:flex;gap:10px;margin-top:14px;">
-                    <button type="submit" class="btn-sm btn-ok">Save Changes</button>
-                    <button type="button" class="btn-sm btn-del" onclick="document.getElementById('editFlowerModal').classList.remove('show');">Cancel</button>
-                </div>
-            </form>
+            <h3 style="color:var(--secondary);margin-bottom:16px;">Flower Photo</h3>
+            <div style="text-align:center;">
+                <img id="flowerLightboxImg" src="" alt="" style="max-width:100%;max-height:55vh;border-radius:10px;display:none;">
+                <p id="flowerLightboxNoImg" style="color:#8a8a8a;padding:30px;display:none;"><i class="fas fa-image"></i> No photo uploaded yet.</p>
+            </div>
+            <div style="text-align:center;margin-top:14px;">
+                <button type="button" class="btn-sm btn-edit" id="flowerLightboxReplace"><i class="fas fa-upload"></i> Replace Photo</button>
+            </div>
+            <p id="flowerLightboxFile" style="text-align:center;font-size:0.8rem;color:var(--secondary);margin-top:8px;display:none;"></p>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">
+                <button type="button" class="btn-sm btn-del" onclick="document.getElementById('flowerLightbox').classList.remove('show');">Close</button>
+            </div>
         </div>
     </div>
 
@@ -1422,17 +1445,66 @@
             });
         });
 
-        document.querySelectorAll('.edit-flower-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.getElementById('edit-flower-id').value = this.dataset.id;
-                document.getElementById('edit-flower-name').value = this.dataset.name;
-                document.getElementById('edit-flower-display-name').value = this.dataset.displayName;
-                document.getElementById('edit-flower-price').value = this.dataset.price;
-                document.getElementById('edit-flower-stock').value = this.dataset.stock;
-                document.getElementById('edit-flower-sort-order').value = this.dataset.sortOrder;
-                document.getElementById('edit-flower-active').value = this.dataset.active;
-                document.getElementById('editFlowerModal').classList.add('show');
+        document.querySelectorAll('.flower-edit-row').forEach(row => {
+            row.querySelector('.save-flower-btn').addEventListener('click', function() {
+                document.getElementById('flower-edit-id').value = row.dataset.id;
+                document.getElementById('flower-edit-display-name').value = row.querySelector('[name="display_name"]').value;
+                document.getElementById('flower-edit-name').value = row.querySelector('[name="name"]').value;
+                document.getElementById('flower-edit-price').value = row.querySelector('[name="price"]').value;
+                document.getElementById('flower-edit-stock').value = row.querySelector('[name="stock_quantity"]').value;
+                document.getElementById('flower-edit-sort').value = row.querySelector('[name="sort_order"]').value;
+                document.getElementById('flower-edit-active').value = row.querySelector('.flower-active-check').checked ? '1' : '0';
+                document.getElementById('flowerEditForm').submit();
             });
+        });
+
+        document.querySelectorAll('.delete-flower-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!confirm('Delete this flower?')) return;
+                document.getElementById('flower-delete-id').value = this.dataset.id;
+                document.getElementById('flowerDeleteForm').submit();
+            });
+        });
+
+        let activeFlowerRow = null;
+        const lightboxImg = document.getElementById('flowerLightboxImg');
+        const lightboxNoImg = document.getElementById('flowerLightboxNoImg');
+        const lightboxFileNote = document.getElementById('flowerLightboxFile');
+        const flowerFileInput = document.getElementById('flower-edit-image');
+
+        document.querySelectorAll('.flower-thumb').forEach(thumb => {
+            thumb.addEventListener('click', function() {
+                activeFlowerRow = this.dataset.row;
+                flowerFileInput.value = '';
+                lightboxFileNote.style.display = 'none';
+                if (this.tagName === 'IMG' && this.src) {
+                    lightboxImg.src = this.src;
+                    lightboxImg.style.display = 'block';
+                    lightboxNoImg.style.display = 'none';
+                } else {
+                    lightboxImg.style.display = 'none';
+                    lightboxNoImg.style.display = 'block';
+                }
+                document.getElementById('flowerLightbox').classList.add('show');
+            });
+        });
+
+        document.getElementById('flowerLightboxReplace').addEventListener('click', function() {
+            flowerFileInput.click();
+        });
+
+        flowerFileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                lightboxImg.src = e.target.result;
+                lightboxImg.style.display = 'block';
+                lightboxNoImg.style.display = 'none';
+                lightboxFileNote.textContent = 'New photo selected: ' + file.name + ' — click Save on that row to apply.';
+                lightboxFileNote.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
         });
 
         document.querySelectorAll('.edit-color-btn').forEach(btn => {

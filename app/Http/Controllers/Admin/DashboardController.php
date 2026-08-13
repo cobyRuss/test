@@ -172,10 +172,11 @@ class DashboardController extends Controller
                     break;
 
                 case 'add_custom_flower':
+                    $displayName = trim((string) $request->input('display_name'));
                     CustomizationOption::query()->create([
                         'type' => 'flower',
-                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
-                        'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
+                        'name' => $this->slugifyFlowerName($displayName),
+                        'display_name' => $displayName,
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
                         'is_active' => $request->boolean('is_active'),
@@ -191,7 +192,7 @@ class DashboardController extends Controller
 
                     if ($flower) {
                         $data = [
-                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -598,6 +599,13 @@ class DashboardController extends Controller
         }
 
         return '#'.$hex;
+    }
+
+    private function slugifyFlowerName(string $value): string
+    {
+        $slug = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $value), '_'));
+
+        return $slug === '' ? 'flower_'.time() : $slug;
     }
 
     private function storeUploadedImage($file): ?string
