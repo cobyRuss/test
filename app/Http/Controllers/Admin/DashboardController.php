@@ -221,7 +221,7 @@ class DashboardController extends Controller
                 case 'add_custom_color':
                     CustomizationOption::query()->create([
                         'type' => 'color',
-                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
@@ -238,7 +238,7 @@ class DashboardController extends Controller
 
                     if ($color) {
                         $data = [
-                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
@@ -269,7 +269,7 @@ class DashboardController extends Controller
                 case 'add_ribbon':
                     CustomizationOption::query()->create([
                         'type' => 'ribbon',
-                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -285,7 +285,7 @@ class DashboardController extends Controller
 
                     if ($ribbon) {
                         $data = [
-                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -316,7 +316,7 @@ class DashboardController extends Controller
                 case 'add_custom_style':
                     CustomizationOption::query()->create([
                         'type' => 'style',
-                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -332,7 +332,7 @@ class DashboardController extends Controller
 
                     if ($style) {
                         $data = [
-                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -360,7 +360,7 @@ class DashboardController extends Controller
                 case 'add_filler':
                     CustomizationOption::query()->create([
                         'type' => 'filler',
-                        'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -376,7 +376,7 @@ class DashboardController extends Controller
 
                     if ($filler) {
                         $data = [
-                            'name' => strtolower(str_replace(' ', '_', (string) $request->input('name'))),
+                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),

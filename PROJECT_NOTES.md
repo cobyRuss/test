@@ -90,6 +90,15 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   - Thumbnail is clickable -> enlarges in a lightbox with a "Replace photo" option that
     picks a new file; the new file submits with the next Save on that row.
   - Delete is a trash icon with a confirm.
+- **Same inline-edit cleanup applied to the rest of the Customization tab** — flower
+  variants, ribbon variants (both share `variantEditForm`/`variantDeleteForm`), fillers,
+  wrapper colors, ribbons, and styles all use the same pattern: no slug fields anywhere
+  (Add forms too), click-to-edit inline inputs, Save + trash buttons, green/red Active
+  switch, and a **single shared photo lightbox** (`#photoLightbox`) for enlarge/replace.
+  Wrapper colors and ribbons also get a "Remove photo" option in the lightbox (sets
+  `clear_image`, since they can fall back to `hex_color`). The old edit modals
+  (`editColorModal`, `editRibbonModal`, `editStyleModal`, `editVariantModal`,
+  `editFillerModal`) were deleted. Color/variant hex is preserved/editable inline.
 
 ## Known issues / gotchas
 
@@ -109,4 +118,5 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   use these. `image_url` = pattern/size image; `hex_color` = solid swatch color.
 - Flowers: per-stem price on the option; size/color variants can override price (>0 replaces base).
   The `name` column is a slug derived from `display_name` — treat it as internal, not user-facing.
+  Same auto-slug rule applies to colors, ribbons, styles, and fillers on add/edit.
 - Ribbons: price = size variant price if >0, else color variant price, else 0.
