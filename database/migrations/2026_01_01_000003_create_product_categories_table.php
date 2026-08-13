@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (! Schema::hasTable('product_categories')) {
             Schema::create('product_categories', function (Blueprint $table) {
-                $table->id();
+                $table->integer('id', true);
                 $table->string('slug')->unique();
                 $table->string('display_name');
             });

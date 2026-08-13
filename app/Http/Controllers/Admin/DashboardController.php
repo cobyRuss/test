@@ -54,25 +54,41 @@ class DashboardController extends Controller
 
         switch ($request->input('action')) {
                 case 'add_product':
-                    Product::query()->create([
+                    $product = Product::query()->create([
                         'name' => $request->input('name'),
                         'description' => $request->input('description'),
                         'price' => $request->input('price'),
-                        'category' => $request->input('category'),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
+                        'is_active' => $request->boolean('is_active'),
                     ]);
+                    $product->categories()->sync(array_map('intval', (array) $request->input('categories', [])));
+                    $product->flowers()->sync(array_map('intval', (array) $request->input('flowers', [])));
                     $message = 'Product added successfully!';
                     break;
 
                 case 'edit_product':
-                    Product::query()->where('id', $request->input('id'))->update([
-                        'name' => $request->input('name'),
-                        'description' => $request->input('description'),
-                        'price' => $request->input('price'),
-                        'category' => $request->input('category'),
-                        'image_url' => $request->input('image_url'),
-                    ]);
-                    $message = 'Product updated successfully!';
+                    $product = Product::query()->find((int) $request->input('id'));
+
+                    if ($product) {
+                        $data = [
+                            'name' => $request->input('name'),
+                            'description' => $request->input('description'),
+                            'price' => $request->input('price'),
+                            'image_url' => $request->input('image_url'),
+                            'is_active' => $request->boolean('is_active'),
+                        ];
+
+                        $imageUrl = $this->storeUploadedImage($request->file('image'));
+
+                        if ($imageUrl) {
+                            $data['image_url'] = $imageUrl;
+                        }
+
+                        $product->update($data);
+                        $product->categories()->sync(array_map('intval', (array) $request->input('categories', [])));
+                        $product->flowers()->sync(array_map('intval', (array) $request->input('flowers', [])));
+                        $message = 'Product updated successfully!';
+                    }
                     break;
 
                 case 'delete_product':
@@ -106,7 +122,7 @@ class DashboardController extends Controller
                     $category = ProductCategory::query()->find((int) $request->input('cat_id'));
 
                     if ($category) {
-                        $count = Product::query()->where('category', $category->slug)->count();
+                        $count = DB::table('category_product')->where('category_id', $category->id)->count();
 
                         if ($count > 0) {
                             $message = '⚠️ Cannot delete — products still use this category. Reassign them first.';
@@ -164,6 +180,7 @@ class DashboardController extends Controller
                         'image_url' => $this->storeUploadedImage($request->file('image')),
                         'is_active' => $request->boolean('is_active'),
                         'sort_order' => (int) $request->input('sort_order', 0),
+                        'stock_quantity' => max(0, (int) $request->input('stock_quantity', 100)),
                     ]);
                     $message = 'Flower added successfully!';
                     session(['active_tab' => 'customization']);
@@ -179,6 +196,7 @@ class DashboardController extends Controller
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
                             'sort_order' => (int) $request->input('sort_order', 0),
+                            'stock_quantity' => max(0, (int) $request->input('stock_quantity', $flower->stock_quantity)),
                         ];
 
                         $imageUrl = $this->storeUploadedImage($request->file('image'));
@@ -499,7 +517,9 @@ class DashboardController extends Controller
         $query = Product::query();
 
         if ($categoryFilter !== '') {
-            $query->where('category', $categoryFilter);
+            $query->whereHas('categories', function ($q) use ($categoryFilter) {
+                $q->where('slug', $categoryFilter);
+            });
         }
 
         if ($searchProduct !== '') {
@@ -513,6 +533,7 @@ class DashboardController extends Controller
         $totalPages = max(1, (int) ceil($totalProducts / $productsPerPage));
 
         $products = (clone $query)
+            ->with(['categories', 'flowers'])
             ->orderByDesc('id')
             ->offset(($page - 1) * $productsPerPage)
             ->limit($productsPerPage)
@@ -535,10 +556,11 @@ class DashboardController extends Controller
             $categories = ['roses', 'sunflowers', 'tulips', 'seasonal', 'arrangements', 'wrappers'];
         }
 
-        $categoryCounts = Product::query()
-            ->select('category', DB::raw('COUNT(*) as count'))
-            ->groupBy('category')
-            ->pluck('count', 'category')
+        $categoryCounts = DB::table('category_product as cp')
+            ->join('product_categories as pc', 'cp.category_id', '=', 'pc.id')
+            ->select('pc.slug', DB::raw('COUNT(*) as count'))
+            ->groupBy('pc.slug')
+            ->pluck('count', 'slug')
             ->toArray();
 
         return compact('dynamicCategories', 'categoriesList', 'categories', 'categoryCounts');

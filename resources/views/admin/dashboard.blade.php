@@ -106,11 +106,26 @@
                             <div><label>Name</label><input type="text" name="name" required></div>
                             <div><label>Price</label><input type="number" step="0.01" min="0" name="price" required></div>
                             <div>
-                                <label>Category</label>
-                                <select name="category" required>
-                                    @foreach ($categories as $cat)
-                                        <option value="{{ $cat }}">{{ ucfirst($cat) }}</option>
+                                <label>Categories (hold Ctrl/Cmd to select multiple)</label>
+                                <select name="categories[]" multiple size="6" required style="min-height:120px;">
+                                    @foreach ($categoriesList as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->display_name }}</option>
                                     @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label>Flowers used (makes this product depend on flower stock)</label>
+                                <select name="flowers[]" multiple size="6" style="min-height:120px;">
+                                    @foreach ($customFlowers as $flower)
+                                        <option value="{{ $flower->id }}">{{ $flower->display_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label>Active</label>
+                                <select name="is_active">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
                                 </select>
                             </div>
                             <div><label>Product Image</label><input type="file" name="image" accept="image/*"></div>
@@ -126,8 +141,8 @@
                         <input type="hidden" name="tab" value="products">
                         <select name="category_filter">
                             <option value="">All categories</option>
-                            @foreach ($categories as $cat)
-                                <option value="{{ $cat }}" @selected($categoryFilter === $cat)>{{ ucfirst($cat) }}</option>
+                            @foreach ($categoriesList as $cat)
+                                <option value="{{ $cat->slug }}" @selected($categoryFilter === $cat->slug)>{{ $cat->display_name }}</option>
                             @endforeach
                         </select>
                         <input type="text" name="search_product" placeholder="Search products..." value="{{ $searchProduct }}">
@@ -136,21 +151,34 @@
 
                     <table class="admin-table">
                         <thead>
-                            <tr><th></th><th>Name</th><th>Category</th><th>Price</th><th>Actions</th></tr>
+                            <tr><th></th><th>Name</th><th>Category</th><th>Price</th><th>Availability</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
                             @forelse ($products as $product)
                                 <tr>
                                     <td><img src="{{ asset('images/'.$product->image_url) }}" alt=""></td>
                                     <td><strong>{{ $product->name }}</strong><br><span style="font-size:0.78rem;color:#8a8a8a;">{{ \Illuminate\Support\Str::limit($product->description, 40) }}</span></td>
-                                    <td>{{ ucfirst($product->category) }}</td>
+                                    <td>
+                                        @foreach ($product->categories as $cat)
+                                            <span style="display:inline-block;background:#f3e8ea;color:var(--secondary);border-radius:20px;padding:2px 10px;font-size:0.75rem;margin:2px 2px 2px 0;">{{ $cat->display_name }}</span>
+                                        @endforeach
+                                    </td>
                                     <td>₱{{ number_format($product->price, 2) }}</td>
+                                    <td>
+                                        @if ($product->is_available)
+                                            <span style="display:inline-block;background:#e8f5e9;color:#1b7f3b;border-radius:20px;padding:2px 10px;font-size:0.75rem;">Available</span>
+                                        @else
+                                            <span style="display:inline-block;background:#fdecea;color:#c0392b;border-radius:20px;padding:2px 10px;font-size:0.75rem;" title="Hidden from customers or uses an out-of-stock flower">Unavailable</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <button class="btn-sm btn-edit edit-product-btn"
                                                 data-id="{{ $product->id }}"
                                                 data-name="{{ $product->name }}"
                                                 data-price="{{ $product->price }}"
-                                                data-category="{{ $product->category }}"
+                                                data-categories="{{ $product->categories->pluck('id')->implode(',') }}"
+                                                data-flowers="{{ $product->flowers->pluck('id')->implode(',') }}"
+                                                data-active="{{ $product->is_active ? '1' : '0' }}"
                                                 data-image="{{ $product->image_url }}"
                                                 data-description="{{ $product->description }}">
                                             Edit
@@ -292,6 +320,7 @@
                             <div><label>Name (slug)</label><input type="text" name="name" placeholder="e.g. rose" required></div>
                             <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Roses"></div>
                             <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" required></div>
+                            <div><label>Stock Qty (0 = out of stock)</label><input type="number" min="0" name="stock_quantity" value="100" required></div>
                             <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
                             <div><label>Photo</label><input type="file" name="image" accept="image/*"></div>
                             <div>
@@ -309,7 +338,7 @@
                 <div class="card">
                     <h3>Flowers ({{ $customFlowers->count() }})</h3>
                     <table class="admin-table">
-                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <thead><tr><th></th><th>Display Name</th><th>Slug</th><th>Price</th><th>Stock</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
                         <tbody>
                             @forelse ($customFlowers as $flower)
                                 <tr>
@@ -323,6 +352,13 @@
                                     <td><strong>{{ $flower->display_name }}</strong></td>
                                     <td>{{ $flower->name }}</td>
                                     <td>₱{{ number_format($flower->price, 2) }}</td>
+                                    <td>
+                                        @if ((int) $flower->stock_quantity > 0)
+                                            {{ $flower->stock_quantity }}
+                                        @else
+                                            <span style="display:inline-block;background:#fdecea;color:#c0392b;border-radius:20px;padding:2px 10px;font-size:0.75rem;">Out of stock</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $flower->sort_order }}</td>
                                     <td>{{ $flower->is_active ? 'Yes' : 'No' }}</td>
                                     <td>
@@ -331,6 +367,7 @@
                                                 data-name="{{ $flower->name }}"
                                                 data-display-name="{{ $flower->display_name }}"
                                                 data-price="{{ $flower->price }}"
+                                                data-stock="{{ $flower->stock_quantity }}"
                                                 data-sort-order="{{ $flower->sort_order }}"
                                                 data-active="{{ $flower->is_active ? '1' : '0' }}">
                                             Edit
@@ -344,7 +381,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="empty-row">No flowers yet.</td></tr>
+                                <tr><td colspan="8" class="empty-row">No flowers yet.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -1095,7 +1132,7 @@
     <div class="edit-modal" id="editProductModal">
         <div class="edit-modal-box">
             <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Product</h3>
-            <form action="{{ route('admin.dashboard.post') }}" method="POST">
+            <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="action" value="edit_product">
                 <input type="hidden" name="id" id="edit-id">
@@ -1103,14 +1140,30 @@
                     <div><label>Name</label><input type="text" name="name" id="edit-name" required></div>
                     <div><label>Price</label><input type="number" step="0.01" min="0" name="price" id="edit-price" required></div>
                     <div>
-                        <label>Category</label>
-                        <select name="category" id="edit-category" required>
-                            @foreach ($categories as $cat)
-                                <option value="{{ $cat }}">{{ ucfirst($cat) }}</option>
+                        <label>Categories (hold Ctrl/Cmd to select multiple)</label>
+                        <select name="categories[]" id="edit-categories" multiple size="6" required style="min-height:120px;">
+                            @foreach ($categoriesList as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->display_name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div><label>Image filename</label><input type="text" name="image_url" id="edit-image"></div>
+                    <div>
+                        <label>Flowers used</label>
+                        <select name="flowers[]" id="edit-flowers" multiple size="6" style="min-height:120px;">
+                            @foreach ($customFlowers as $flower)
+                                <option value="{{ $flower->id }}">{{ $flower->display_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label>Active</label>
+                        <select name="is_active" id="edit-active">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                    <div><label>Image</label><input type="file" name="image" accept="image/*"></div>
+                    <input type="hidden" name="image_url" id="edit-image">
                     <div style="grid-column: 1 / -1;"><label>Description</label><textarea name="description" id="edit-description" rows="3"></textarea></div>
                 </div>
                 <div style="display:flex;gap:10px;margin-top:14px;">
@@ -1132,6 +1185,7 @@
                     <div><label>Name (slug)</label><input type="text" name="name" id="edit-flower-name" required></div>
                     <div><label>Display Name</label><input type="text" name="display_name" id="edit-flower-display-name"></div>
                     <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" id="edit-flower-price" required></div>
+                    <div><label>Stock Qty (0 = out of stock)</label><input type="number" min="0" name="stock_quantity" id="edit-flower-stock" required></div>
                     <div><label>Sort Order</label><input type="number" min="0" name="sort_order" id="edit-flower-sort-order"></div>
                     <div><label>Replace Photo</label><input type="file" name="image" accept="image/*"></div>
                     <div>
@@ -1359,7 +1413,9 @@
                 document.getElementById('edit-id').value = this.dataset.id;
                 document.getElementById('edit-name').value = this.dataset.name;
                 document.getElementById('edit-price').value = this.dataset.price;
-                document.getElementById('edit-category').value = this.dataset.category;
+                document.getElementById('edit-categories').value = this.dataset.categories.split(',');
+                document.getElementById('edit-flowers').value = this.dataset.flowers ? this.dataset.flowers.split(',') : [];
+                document.getElementById('edit-active').value = this.dataset.active || '1';
                 document.getElementById('edit-image').value = this.dataset.image;
                 document.getElementById('edit-description').value = this.dataset.description;
                 document.getElementById('editProductModal').classList.add('show');
@@ -1372,6 +1428,7 @@
                 document.getElementById('edit-flower-name').value = this.dataset.name;
                 document.getElementById('edit-flower-display-name').value = this.dataset.displayName;
                 document.getElementById('edit-flower-price').value = this.dataset.price;
+                document.getElementById('edit-flower-stock').value = this.dataset.stock;
                 document.getElementById('edit-flower-sort-order').value = this.dataset.sortOrder;
                 document.getElementById('edit-flower-active').value = this.dataset.active;
                 document.getElementById('editFlowerModal').classList.add('show');

@@ -10,11 +10,10 @@ return new class extends Migration
     {
         if (! Schema::hasTable('products')) {
             Schema::create('products', function (Blueprint $table) {
-                $table->id();
+                $table->integer('id', true);
                 $table->string('name');
                 $table->text('description')->nullable();
                 $table->decimal('price', 10, 2);
-                $table->string('category', 100);
                 $table->string('image_url');
                 $table->timestamp('created_at')->useCurrent();
             });

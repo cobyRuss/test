@@ -67,10 +67,14 @@ class CartController extends Controller
         $productId = (int) $request->input('product_id', 0);
         $quantity = max(1, (int) $request->input('quantity', 1));
 
-        $product = Product::query()->find($productId);
+        $product = Product::query()->with('flowers')->find($productId);
 
         if (! $product) {
             return response()->json(['success' => false, 'message' => 'Product not found']);
+        }
+
+        if (! $product->is_available) {
+            return response()->json(['success' => false, 'message' => 'This product is not available at the moment.']);
         }
 
         if (! Auth::guard('web')->check()) {

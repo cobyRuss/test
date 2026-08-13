@@ -11,7 +11,8 @@ class CustomizeController extends Controller
 {
     public function index()
     {
-        $flowers = CustomizationOption::query()->where('type', 'flower')->where('is_active', true)->orderBy('sort_order')
+        $flowers = CustomizationOption::query()->where('type', 'flower')->where('is_active', true)
+            ->where('stock_quantity', '>', 0)->orderBy('sort_order')
             ->with(['variants' => fn ($q) => $q->where('is_active', true)])->get();
         $colors = CustomizationOption::query()->where('type', 'color')->where('is_active', true)->orderBy('sort_order')->get();
         $styles = CustomizationOption::query()->where('type', 'style')->where('is_active', true)->orderBy('sort_order')->get();

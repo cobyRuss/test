@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\CustomizationOption;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -17,7 +19,7 @@ class ProductSeeder extends Seeder
             ['Red Romance Bouquet', 'A classic arrangement of deep red roses, symbolizing love and passion.', 2300.00, 'roses', 'rs.jpg'],
             ['Sunflower Symphony', 'A vibrant arrangement of cheerful sunflowers to brighten any room with sunny energy.', 10500.00, 'sunflowers', 'sf.jpg'],
             ['Pastel Tulip Elegance', 'Soft pastel tulips arranged to create an elegant and sophisticated spring display.', 1450.00, 'tulips', 't1.jpg'],
-            ['Mixed Garden Bouquet', 'A beautiful assortment of seasonal flowers for a natural garden feel.', 1550.00, 'seasonal', 'mg.jpg'],
+            ['Mixed Garden Bouquet', 'A beautiful assortment of seasonal flowers for a natural garden feel.', 1550.00, ['seasonal', 'arrangements'], 'mg.jpg'],
             ['Tropical Paradise', 'Exotic flowers that bring a vibrant, tropical feel to any space.', 2550.00, 'arrangements', 'tp.jpg'],
             ['Sunshine Daisies', 'Cheerful daisies that spread happiness and brighten your day.', 1800.00, 'arrangements', 'sd.jpg'],
             ['Pink Perfection', 'Delicate pink roses that express admiration and gratitude.', 1800.00, 'roses', 'pr.jpg'],
@@ -28,7 +30,7 @@ class ProductSeeder extends Seeder
             ['Golden Sunshine', 'A vibrant mix of sunflowers that brings warmth and happiness to any space.', 1400.00, 'sunflowers', 's2.jpg'],
             ['Summer Field', 'An abundant arrangement that captures the essence of a sunny summer field.', 900.00, 'sunflowers', 's3.jpg'],
             ['Mini Delight', 'Charming mini sunflowers perfect for adding a cheerful touch to any room.', 1300.00, 'sunflowers', 's4.jpg'],
-            ['Sunny Mix', 'A delightful combination of sunflowers and daisies for a bright, cheerful display.', 2300.00, 'sunflowers', 's5.jpg'],
+            ['Sunny Mix', 'A delightful combination of sunflowers and daisies for a bright, cheerful display.', 2300.00, ['sunflowers', 'seasonal'], 's5.jpg'],
             ['Autumn Picnic', 'Rich, warm sunflowers in a box.', 2500.00, 'sunflowers', 's6.jpg'],
             ['Gradient Delight', 'A vibrant mix of colorful white and pink that brings joy and cheer to any space.', 1600.00, 'tulips', 'ct.jpg'],
             ['Soft Passion', 'Light pink tulips that symbolize perfect love and passion.', 2750.00, 'tulips', 'pt.jpg'],
@@ -52,14 +54,41 @@ class ProductSeeder extends Seeder
             ['Beautiful Wrapper 6', 'Green and blue artistic wrapper.', 20.00, 'wrappers', 'greenblue.webp'],
         ];
 
-        foreach ($products as [$name, $description, $price, $category, $image]) {
-            Product::query()->create([
+        $flowerByCategory = [
+            'roses' => ['rose'],
+            'sunflowers' => ['sunflower'],
+            'tulips' => ['tulip'],
+            'seasonal' => ['lily', 'carnation', 'orchid'],
+            'arrangements' => ['lily', 'orchid', 'carnation'],
+        ];
+
+        foreach ($products as [$name, $description, $price, $categories, $image]) {
+            $product = Product::query()->create([
                 'name' => $name,
                 'description' => $description,
                 'price' => $price,
-                'category' => $category,
                 'image_url' => $image,
             ]);
+
+            $categoryIds = ProductCategory::query()
+                ->whereIn('slug', (array) $categories)
+                ->pluck('id')
+                ->all();
+
+            $product->categories()->attach($categoryIds);
+
+            $flowerNames = collect((array) $categories)
+                ->flatMap(fn ($slug) => $flowerByCategory[$slug] ?? [])
+                ->unique()
+                ->all();
+
+            $flowerIds = CustomizationOption::query()
+                ->where('type', 'flower')
+                ->whereIn('name', $flowerNames)
+                ->pluck('id')
+                ->all();
+
+            $product->flowers()->attach($flowerIds);
         }
     }
 }

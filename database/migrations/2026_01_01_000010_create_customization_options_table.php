@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (! Schema::hasTable('customization_options')) {
             Schema::create('customization_options', function (Blueprint $table) {
-                $table->id();
+                $table->integer('id', true);
                 $table->string('type');
                 $table->string('name');
                 $table->string('display_name');

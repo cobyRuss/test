@@ -12,7 +12,7 @@ return new class extends Migration
             Schema::create('preset_items', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('preset_id');
-                $table->unsignedBigInteger('flower_id');
+                $table->integer('flower_id');
                 $table->unsignedInteger('quantity');
 
                 $table->foreign('preset_id')->references('id')->on('customization_presets')->onDelete('cascade');

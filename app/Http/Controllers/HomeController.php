@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductCategory;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -14,10 +15,12 @@ class HomeController extends Controller
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query();
+        $query = Product::query()->with('flowers');
 
         if ($category !== 'all') {
-            $query->where('category', $category);
+            $query->whereHas('categories', function ($q) use ($category) {
+                $q->where('slug', $category);
+            });
         }
 
         if ($search !== '') {
@@ -36,7 +39,8 @@ class HomeController extends Controller
             ->limit($itemsPerPage)
             ->get();
 
-        $categories = Product::query()->distinct()->orderBy('category')->pluck('category');
+        $categories = ProductCategory::query()->orderBy('display_name')->pluck('slug');
+        $categoryAvailability = $this->categoryAvailability();
 
         $contactSuccess = session('contact_success');
         $contactErrors = session('contact_errors');
@@ -44,6 +48,7 @@ class HomeController extends Controller
         return view('home.index', compact(
             'products',
             'categories',
+            'categoryAvailability',
             'category',
             'search',
             'page',
@@ -52,5 +57,22 @@ class HomeController extends Controller
             'contactSuccess',
             'contactErrors'
         ));
+    }
+
+    private function categoryAvailability(): array
+    {
+        $result = [];
+
+        foreach (ProductCategory::query()->orderBy('display_name')->get() as $category) {
+            $total = $category->products()->count();
+            $available = $category->products()
+                ->where('products.is_active', true)
+                ->whereDoesntHave('flowers', fn ($q) => $q->where('stock_quantity', '<=', 0))
+                ->count();
+
+            $result[$category->slug] = ['total' => $total, 'available' => $available];
+        }
+
+        return $result;
     }
 }

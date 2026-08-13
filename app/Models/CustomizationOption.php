@@ -20,11 +20,17 @@ class CustomizationOption extends Model
         'hex_color',
         'is_active',
         'sort_order',
+        'stock_quantity',
     ];
 
     public function variants()
     {
         return $this->hasMany(CustomizationOptionVariant::class, 'customization_option_id')
             ->orderBy('sort_order');
+    }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'flower_product', 'flower_id', 'product_id');
     }
 }

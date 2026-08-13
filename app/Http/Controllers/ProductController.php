@@ -15,10 +15,12 @@ class ProductController extends Controller
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query();
+        $query = Product::query()->with('flowers');
 
         if ($category !== 'all') {
-            $query->where('category', $category);
+            $query->whereHas('categories', function ($q) use ($category) {
+                $q->where('slug', $category);
+            });
         }
 
         if ($search !== '') {
@@ -38,20 +40,44 @@ class ProductController extends Controller
             ->get();
 
         $categories = ProductCategory::query()->orderBy('display_name')->get();
+        $categoryAvailability = $this->categoryAvailability();
 
-        return view('products.index', compact('products', 'categories', 'category', 'search', 'page', 'totalPages', 'totalItems'));
+        return view('products.index', compact('products', 'categories', 'categoryAvailability', 'category', 'search', 'page', 'totalPages', 'totalItems'));
     }
 
     public function show(Request $request, int $id)
     {
-        $product = Product::query()->findOrFail($id);
+        $product = Product::query()->with(['categories', 'flowers'])->findOrFail($id);
+
+        $categoryIds = $product->categories->pluck('id');
 
         $related = Product::query()
-            ->where('category', $product->category)
+            ->with('flowers')
+            ->whereHas('categories', function ($q) use ($categoryIds) {
+                $q->whereIn('product_categories.id', $categoryIds);
+            })
             ->where('id', '!=', $product->id)
+            ->orderBy('id')
             ->limit(4)
             ->get();
 
         return view('products.show', compact('product', 'related'));
+    }
+
+    private function categoryAvailability(): array
+    {
+        $result = [];
+
+        foreach (ProductCategory::query()->orderBy('display_name')->get() as $category) {
+            $total = $category->products()->count();
+            $available = $category->products()
+                ->where('products.is_active', true)
+                ->whereDoesntHave('flowers', fn ($q) => $q->where('stock_quantity', '<=', 0))
+                ->count();
+
+            $result[$category->slug] = ['total' => $total, 'available' => $available];
+        }
+
+        return $result;
     }
 }

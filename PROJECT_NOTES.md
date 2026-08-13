@@ -61,6 +61,22 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   renders the image (patterns); otherwise it falls back to `hex_color`.
 - Ribbon selection is toggleable: click the same color/size again to deselect; picking
   another ribbon clears the previous ribbon's selection (one ribbon at a time).
+- **Products are now multi-category (many-to-many).** New pivot table `category_product`
+  (`product_id` + `category_id`); the old `products.category` string column was dropped
+  and its data migrated into the pivot. Products appear in every category they belong to
+  (shop filter, home filter, related items, admin filter). Admin product form is now a
+  multi-select (`categories[]`). Seeder attaches categories via the relation.
+- **Flower stock → product availability cascade.** `customization_options.stock_quantity`
+  (default 100; 0 = out of stock) drives product availability through a new `flower_product`
+  pivot (`product_id` + `flower_id`, FK cascade). `Product::is_available` is true only if
+  `is_active` AND every linked flower has `stock_quantity > 0`. Products with no flower
+  links are always available (unless manually deactivated). `products.is_active` (admin
+  toggle) also hides products. UI: storefront cards/detail pages get an "Unavailable"
+  overlay and disabled buttons; category filter buttons show "(Unavailable)" when a whole
+  category is out of stock; customize page hides out-of-stock flowers; cart add endpoint
+  rejects unavailable products. Admin: product form has "Flowers used" multi-select +
+  Active toggle, edit modal populates them, products table shows an Availability badge,
+  flower form/table/modal show Stock Qty. Seeder links products to flowers by category.
 - Fixed/checked intermittent **419 "Page Expired"** on login (CSRF): verified sessions
   table exists; was a stale-session/cookie issue, not a bug.
 
@@ -70,8 +86,8 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   SESSION_LIFETIME=120 in `.env`.
 - **v2 DB lost filler photos/prices** (fillers are ₱0 with no image). Decided to keep as-is;
   can restore from `main`'s old dump if needed. Image files are still on disk.
-- There are **5 orphan images** in `public/images/` (`flower_1786528xxx_*.jpg`) that are
-  not referenced by any DB row — test uploads, kept untracked (not committed).
+- There were **5 orphan images** in `public/images/` (`flower_1786528xxx_*.jpg`) not
+  referenced by any DB row — test uploads. They were deleted (kept untracked, not committed).
 - Test user / admin accounts exist in DB for development (e.g. `test@example.com`).
 
 ## Data model notes (customization)
