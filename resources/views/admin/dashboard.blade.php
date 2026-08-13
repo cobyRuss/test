@@ -38,6 +38,8 @@
         .btn-edit { background: #8a9b6e; }
         .btn-del { background: #c94a4a; }
         .btn-ok { background: #2e7d32; }
+        .save-row-btn { background: #c9c9c9; cursor: not-allowed; opacity: 0.85; transition: background 0.2s, opacity 0.2s; }
+        .edit-row.dirty .save-row-btn { background: #2e7d32; cursor: pointer; opacity: 1; }
         .btn-verify { background: #1a4a8a; }
         .btn-warn { background: #b37400; }
         .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
@@ -1378,10 +1380,18 @@
             });
         });
 
+        function markRowDirty(row) {
+            row.classList.add('dirty');
+        }
+
         function bindEditRow(selector) {
             document.querySelectorAll(selector).forEach(row => {
                 const editForm = document.getElementById(row.dataset.form);
                 if (!editForm) return;
+                row.querySelectorAll('[data-field], .active-check').forEach(el => {
+                    el.addEventListener('input', () => markRowDirty(row));
+                    el.addEventListener('change', () => markRowDirty(row));
+                });
                 row.querySelector('.save-row-btn').addEventListener('click', function() {
                     editForm.querySelector('[name="id"]').value = row.dataset.id;
                     ['display_name', 'name', 'price', 'sort_order', 'stock_quantity', 'hex_color'].forEach(field => {
@@ -1416,6 +1426,7 @@
 
         let activePhotoInputId = null;
         let activeClearInputId = null;
+        let activeEditRow = null;
         const photoLightboxEl = document.getElementById('photoLightbox');
         const photoLightboxImg = document.getElementById('photoLightboxImg');
         const photoLightboxNoImg = document.getElementById('photoLightboxNoImg');
@@ -1428,6 +1439,7 @@
             thumb.addEventListener('click', function() {
                 activePhotoInputId = this.dataset.input || null;
                 activeClearInputId = this.dataset.clearInput || null;
+                activeEditRow = this.closest('.edit-row') || null;
                 const fileInput = activePhotoInputId ? document.getElementById(activePhotoInputId) : null;
                 if (fileInput) fileInput.value = '';
                 photoLightboxFile.style.display = 'none';
@@ -1457,6 +1469,7 @@
         photoLightboxRemove.addEventListener('click', function() {
             if (activeClearInputId) {
                 document.getElementById(activeClearInputId).value = '1';
+                if (activeEditRow) markRowDirty(activeEditRow);
                 photoLightboxFile.textContent = 'Current photo will be removed when you click Save.';
                 photoLightboxFile.style.display = 'block';
             }
@@ -1466,6 +1479,7 @@
             input.addEventListener('change', function() {
                 const file = this.files[0];
                 if (!file) return;
+                if (activeEditRow) markRowDirty(activeEditRow);
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     photoLightboxImg.src = e.target.result;
