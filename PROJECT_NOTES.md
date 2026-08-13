@@ -100,8 +100,45 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   (`editColorModal`, `editRibbonModal`, `editStyleModal`, `editVariantModal`,
   `editFillerModal`) were deleted. Color/variant hex is preserved/editable inline.
 
+## Admin dashboard UX (2026-08-13)
+
+- **Collapsible accordion cards.** The Customization tab's cards (Flowers, Flower
+  Variants, Fillers, Wrapper Colors, Ribbons, Ribbon Variants, Styles) are now
+  click-to-expand/collapse dropdowns. Only ONE card can be open at a time (accordion),
+  and clicking an open card closes it. Everything starts collapsed on load.
+- **Add-form + list cards merged.** Each list card now contains its add form on top
+  (separated by a dashed border) — no more separate "Add X" cards. Products and Services
+  tabs use the same collapsible pattern (Products list, Add Product, Add Service Photo,
+  and each service-photo category card).
+- **Item counts on every card title** (e.g. `Flowers (7)`, `Flower Variants (33)`,
+  `Fillers (7)`, `Ribbon Variants (14)`).
+- **Pagination (20/page)** on every Customization list via query params: `cfpage`
+  (flowers), `fvpage` (flower variants), `fpage` (fillers), `cpage` (wrapper colors),
+  `rpage` (ribbons), `rvpage` (ribbon variants), `spage` (styles). Flower/ribbon
+  variant tables are now flat (parent name in a column) instead of nested per parent.
+- **Category slug removed from the admin UI.** The Add Category form only asks for a
+  Display Name; the slug is auto-derived via `slugifyFlowerName()` and the Slug column
+  was dropped from the table. Slugs are still stored/used for URLs + filtering.
+- **"Page won't reset" behavior** (important — see gotcha below):
+  - `DashboardController::handlePostActions()` now redirects back to the referer URL's
+    query string, so after any add/edit/delete you keep your tab, filters, and
+    pagination page (e.g. stays on orders page 2). Query is the ONLY part of the
+    referer reused (no open-redirect risk).
+  - Browser-side state restore: before any form submit, `saveDashboardState()` stores
+    the scroll position + open accordion card (panel id + card index) in sessionStorage
+    (`hs_scroll`, `hs_open_card`); `restoreDashboardState()` re-applies them after the
+    reload. Hooked on a capture-phase `submit` listener + explicit calls before the
+    inline-edit hidden forms' `.submit()` and the order-status `onchange` submit.
+
 ## Known issues / gotchas
 
+- **Do NOT re-introduce the full-AJAX dashboard.** A fetch-based form interceptor that
+  swapped `.admin-body` HTML (`loadDashboard`/`bindAjaxForms`) was tried and REVERTED —
+  it broke saves in the browser (page reset + no save, likely CSRF/fetch issues). The
+  current design is standard full-page form submissions + the state-preservation above,
+  which is reliable. If someone wants true no-reload later, test carefully in-browser.
+- **Session-based scroll/card restore uses sessionStorage** — it only survives one
+  reload, so a browser hard-refresh goes back to collapsed/default. That's intentional.
 - **419 on login**: session/cookie staleness. Hard-refresh or clear cookies if it recurs.
   SESSION_LIFETIME=120 in `.env`.
 - **v2 DB lost filler photos/prices** (fillers are ₱0 with no image). Decided to keep as-is;

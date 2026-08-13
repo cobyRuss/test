@@ -42,7 +42,7 @@ class DashboardController extends Controller
         $data = array_merge($data, $this->loadMessages());
         $data = array_merge($data, $this->loadOrders($request));
         $data = array_merge($data, $this->loadReports($request));
-        $data = array_merge($data, $this->loadCustomizationOptions());
+        $data = array_merge($data, $this->loadCustomizationOptions($request));
 
         return view('admin.dashboard', $data);
     }
@@ -97,10 +97,10 @@ class DashboardController extends Controller
                     break;
 
                 case 'add_category':
-                    $catName = strtolower(trim((string) preg_replace('/\s+/', '_', (string) $request->input('cat_name'))));
                     $catDisplay = trim((string) $request->input('cat_display'));
 
-                    if ($catName && $catDisplay) {
+                    if ($catDisplay) {
+                        $catName = $this->slugifyFlowerName($catDisplay);
                         ProductCategory::query()->updateOrCreate(
                             ['slug' => $catName],
                             ['display_name' => $catDisplay]
@@ -505,7 +505,14 @@ class DashboardController extends Controller
             session()->flash('message', $message);
         }
 
-        return redirect()->route('admin.dashboard');
+        $redirectUrl = route('admin.dashboard');
+        $refererQuery = (string) parse_url((string) $request->headers->get('referer', ''), PHP_URL_QUERY);
+
+        if ($refererQuery !== '') {
+            $redirectUrl .= '?' . $refererQuery;
+        }
+
+        return redirect($redirectUrl);
     }
 
     private function loadProducts(Request $request): array
@@ -621,8 +628,10 @@ class DashboardController extends Controller
         return $filename;
     }
 
-    private function loadCustomizationOptions(): array
+    private function loadCustomizationOptions(Request $request): array
     {
+        $perPage = 20;
+
         $customFlowers = CustomizationOption::query()
             ->where('type', 'flower')
             ->orderBy('sort_order')
@@ -650,7 +659,69 @@ class DashboardController extends Controller
             ->with('variants')
             ->get();
 
-        return compact('customFlowers', 'customColors', 'customStyles', 'customFillers', 'customRibbons');
+        $flowersPage = max(1, (int) $request->query('cfpage', 1));
+        $flowersTotal = $customFlowers->count();
+        $flowersTotalPages = max(1, (int) ceil($flowersTotal / $perPage));
+        $flowersPaged = $customFlowers->slice(($flowersPage - 1) * $perPage, $perPage)->values();
+
+        $fillersPage = max(1, (int) $request->query('fpage', 1));
+        $fillersTotal = $customFillers->count();
+        $fillersTotalPages = max(1, (int) ceil($fillersTotal / $perPage));
+        $fillersPaged = $customFillers->slice(($fillersPage - 1) * $perPage, $perPage)->values();
+
+        $colorsPage = max(1, (int) $request->query('cpage', 1));
+        $colorsTotal = $customColors->count();
+        $colorsTotalPages = max(1, (int) ceil($colorsTotal / $perPage));
+        $colorsPaged = $customColors->slice(($colorsPage - 1) * $perPage, $perPage)->values();
+
+        $ribbonsPage = max(1, (int) $request->query('rpage', 1));
+        $ribbonsTotal = $customRibbons->count();
+        $ribbonsTotalPages = max(1, (int) ceil($ribbonsTotal / $perPage));
+        $ribbonsPaged = $customRibbons->slice(($ribbonsPage - 1) * $perPage, $perPage)->values();
+
+        $stylesPage = max(1, (int) $request->query('spage', 1));
+        $stylesTotal = $customStyles->count();
+        $stylesTotalPages = max(1, (int) ceil($stylesTotal / $perPage));
+        $stylesPaged = $customStyles->slice(($stylesPage - 1) * $perPage, $perPage)->values();
+
+        $flowerVariants = CustomizationOptionVariant::query()
+            ->whereHas('option', fn ($q) => $q->where('type', 'flower'))
+            ->with('option')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $flowerVariantsPage = max(1, (int) $request->query('fvpage', 1));
+        $flowerVariantsTotal = (clone $flowerVariants)->count();
+        $flowerVariantsTotalPages = max(1, (int) ceil($flowerVariantsTotal / $perPage));
+        $flowerVariantsPaged = (clone $flowerVariants)
+            ->offset(($flowerVariantsPage - 1) * $perPage)
+            ->limit($perPage)
+            ->get();
+
+        $ribbonVariants = CustomizationOptionVariant::query()
+            ->whereHas('option', fn ($q) => $q->where('type', 'ribbon'))
+            ->with('option')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $ribbonVariantsPage = max(1, (int) $request->query('rvpage', 1));
+        $ribbonVariantsTotal = (clone $ribbonVariants)->count();
+        $ribbonVariantsTotalPages = max(1, (int) ceil($ribbonVariantsTotal / $perPage));
+        $ribbonVariantsPaged = (clone $ribbonVariants)
+            ->offset(($ribbonVariantsPage - 1) * $perPage)
+            ->limit($perPage)
+            ->get();
+
+        return compact(
+            'customFlowers', 'customColors', 'customStyles', 'customFillers', 'customRibbons',
+            'flowersPaged', 'flowersTotal', 'flowersTotalPages', 'flowersPage',
+            'fillersPaged', 'fillersTotal', 'fillersTotalPages', 'fillersPage',
+            'colorsPaged', 'colorsTotal', 'colorsTotalPages', 'colorsPage',
+            'ribbonsPaged', 'ribbonsTotal', 'ribbonsTotalPages', 'ribbonsPage',
+            'stylesPaged', 'stylesTotal', 'stylesTotalPages', 'stylesPage',
+            'flowerVariantsPaged', 'flowerVariantsTotal', 'flowerVariantsTotalPages', 'flowerVariantsPage',
+            'ribbonVariantsPaged', 'ribbonVariantsTotal', 'ribbonVariantsTotalPages', 'ribbonVariantsPage'
+        );
     }
 
     private function loadPayments(): array
