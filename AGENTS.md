@@ -110,4 +110,5 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
 - Payment: **both COD and GCash require a 50% GCash down payment** before confirmation.
   `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Deposit
   Paid) → `completed` (Fully Paid on delivery). GCash screenshot is required.
-- Admin dashboard sidebar: solid `#8a9b6e`, sticky (never scrolls with content).
+- Admin dashboard sidebar: solid `#8a9b6e`, sticky (never scrolls with content), stretched to
+  the bottom of the page (`align-self: stretch` on `.admin-nav`).

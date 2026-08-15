@@ -15,7 +15,7 @@
         .admin-topbar h2 { margin: 0; font-size: 1.2rem; }
         .admin-topbar a { color: #fff; text-decoration: none; font-weight: 600; }
         .admin-body { display: flex; min-height: calc(100vh - 62px); }
-        .admin-nav { width: 220px; background: #8a9b6e; padding: 18px 14px 30px; flex-shrink: 0; position: sticky; top: 62px; align-self: flex-start; max-height: calc(100vh - 62px); overflow-y: auto; }
+        .admin-nav { width: 220px; background: #8a9b6e; padding: 18px 14px 30px; flex-shrink: 0; position: sticky; top: 62px; align-self: stretch; max-height: calc(100vh - 62px); overflow-y: auto; }
         .admin-nav-title { color: rgba(255,255,255,0.75); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 0 16px 12px; }
         .admin-nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 6px; background: transparent; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 600; color: #fff; transition: background 0.2s, color 0.2s; }
         .admin-nav button i { width: 20px; text-align: center; }

@@ -144,6 +144,21 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 
 ## Latest work (2026-08-15)
 
+### Labels + admin sidebar tweaks
+
+- **Customize labels:** flower/filler price labels changed from `/stem` to **`/bouquet`**
+  (3 spots in `resources/views/customize/index.blade.php`: flower price line, filler price
+  line, and the JS `updateFlowerPrice()` suffix). The live stem counter still says
+  "N stems"; `total_stems` unchanged.
+- **Admin green sidebar now stretches to the bottom of the page:** `align-self: stretch`
+  on `.admin-nav` in `resources/views/admin/dashboard.blade.php` (was `flex-start`, which
+  left white space below the green box on short content). Still sticky + capped at
+  `100vh - 62px` with internal scroll on long tabs (verified via Playwright).
+- Flower-color photos for the per-color swatches were uploaded via the admin; the 9 new
+  `public/images/flower_*.{jpg,png}` files are referenced by
+  `customization_option_variants.image_url` / `customization_options.image_url` (verified)
+  so they are committed, and `database.sql` was regenerated to capture the new references.
+
 ### Custom bouquet: per-color quantities + image swatches (bug fix)
 
 - **Bug fixed:** quantities were tracked per flower with a single shared color, so picking
