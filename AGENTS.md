@@ -40,7 +40,15 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
 - Blade views: inline `<style>` and `@push('scripts')` at the bottom — keep consistent.
 - Admin CRUD lives in `app/Http/Controllers/Admin/DashboardController.php` as a big
   `switch ($request->input('action'))` in `handlePostActions()`, with a matching form
-  (hidden `action` input) in `resources/views/admin/dashboard.blade.php` and a modal.
+  (hidden `action` input) in `resources/views/admin/dashboard.blade.php`.
+- Admin dashboard is **modal-based** (since 2026-08-15): every section is a
+  `.section-card` button that opens a `.edit-modal.section-modal`. Only **Products,
+  Services, and Customization** use modals: Products = 2 (Add Product, Products list),
+  Services = 7 (Add Service Photo + one per category), Customization = 7 (Flowers,
+  Flower Variants, Fillers, Wrapper Colors, Ribbons, Ribbon Variants, Styles).
+  **Categories, Orders, Messages, and Reports are plain cards** (like Payments) — no
+  modals there. Each section modal uses `.edit-modal-box.wide` with a `.modal-head`
+  + `.modal-close`. Modals live INSIDE their tab panel (hidden when tab inactive).
 - Images upload via `storeUploadedImage()` (saves to `public/images/`); hex via
   `normalizeHexColor()`. Both already handle image+hex; image takes priority over hex.
 - Custom bouquet is text-only: `description` string built client-side in
@@ -78,9 +86,19 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   A flower/filler is available iff active; a product is available iff `is_active` AND every
   linked flower is active (`Product::is_available`, `categoryAvailability()`). Inactive
   flowers/fillers are hidden on the customize page; inactive variants are never loaded.
-- Admin dashboard is sticky after saves: `saveDashboardState()`/`restoreDashboardState()`
-  (sessionStorage `hs_scroll` + `hs_open_card`) — the open card is captured within the
-  **active tab panel only**, scroll + card restore after the POST redirect.
+- Admin dashboard is sticky after saves AND pagination clicks:
+  `saveDashboardState()`/`restoreDashboardState()` (sessionStorage `hs_scroll` +
+  `hs_open_modal` + `hs_modal_scroll`) — the open **section modal** is captured
+  (the form's enclosing `.section-modal`, or the active tab panel's open modal), and
+  scroll + modal are restored after the POST redirect. The global capture listener
+  excludes `editProductModal`/`editServicePhotoModal`/`photoLightbox` (they aren't
+  `.section-modal`, so they never reopen with stale data). Pagination links
+  (`.pagination a`) also call `saveDashboardState()` on click, so switching pages
+  keeps the page position and reopens the modal on modal tabs (Products/Services/
+  Customization). On plain-card tabs (Orders/Messages) the scroll position persists.
+- Messages: `loadMessages(Request $request)` is paginated at **20/page** with a
+  `message_search` filter (name/email/message LIKE) and `mpage` param. Orders are also
+  paginated at **20/page** (`opage`). Pagination only renders when >1 page.
 - Payment: **both COD and GCash require a 50% GCash down payment** before confirmation.
   `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Deposit
   Paid) → `completed` (Fully Paid on delivery). GCash screenshot is required.

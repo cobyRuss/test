@@ -39,7 +39,7 @@ class DashboardController extends Controller
         $data = array_merge($data, $this->loadCategories());
         $data = array_merge($data, $this->loadServicePhotos());
         $data = array_merge($data, $this->loadPayments());
-        $data = array_merge($data, $this->loadMessages());
+        $data = array_merge($data, $this->loadMessages($request));
         $data = array_merge($data, $this->loadOrders($request));
         $data = array_merge($data, $this->loadReports($request));
         $data = array_merge($data, $this->loadCustomizationOptions($request));
@@ -738,11 +738,32 @@ class DashboardController extends Controller
         return compact('pendingPayments');
     }
 
-    private function loadMessages(): array
+    private function loadMessages(Request $request): array
     {
-        $messages = ContactMessage::query()->orderByDesc('created_at')->get();
+        $messageSearch = trim((string) $request->query('message_search', ''));
+        $messagesPage = max(1, (int) $request->query('mpage', 1));
+        $messagesPerPage = 20;
 
-        return compact('messages');
+        $query = ContactMessage::query();
+
+        if ($messageSearch !== '') {
+            $query->where(function ($q) use ($messageSearch) {
+                $q->where('name', 'like', "%{$messageSearch}%")
+                    ->orWhere('email', 'like', "%{$messageSearch}%")
+                    ->orWhere('message', 'like', "%{$messageSearch}%");
+            });
+        }
+
+        $totalMessages = (clone $query)->count();
+        $messagesTotalPages = max(1, (int) ceil($totalMessages / $messagesPerPage));
+
+        $messages = (clone $query)
+            ->orderByDesc('created_at')
+            ->offset(($messagesPage - 1) * $messagesPerPage)
+            ->limit($messagesPerPage)
+            ->get();
+
+        return compact('messages', 'totalMessages', 'messagesTotalPages', 'messagesPage', 'messageSearch');
     }
 
     private function loadOrders(Request $request): array
@@ -752,7 +773,7 @@ class DashboardController extends Controller
         $orderDateFrom = $request->query('order_date_from', '');
         $orderDateTo = $request->query('order_date_to', '');
         $ordersPage = max(1, (int) $request->query('opage', 1));
-        $ordersPerPage = 15;
+        $ordersPerPage = 20;
 
         $query = DB::table('orders as o')
             ->join('customers as c', 'o.customer_id', '=', 'c.id');

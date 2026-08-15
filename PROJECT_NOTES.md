@@ -101,10 +101,10 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 
 ## Admin dashboard UX (2026-08-13)
 
-> **Update 2026-08-15:** the collapsible/accordion card behavior described below was
-> briefly removed (cards were always expanded), then **restored** the same day per user
-> request — cards are click-to-collapse again. Everything else (item counts, pagination
-> params, page-state restore) still applies.
+> **Update 2026-08-15 (later):** the collapsible/accordion cards below were **replaced by
+> modals** — see "Modal-based admin dashboard" under Latest work. Each section is now a
+> `.section-card` button opening a `.edit-modal.section-modal`; pagination params and
+> page-state restore still apply (state now saves the open **modal**, not a card).
 
 - **Collapsible accordion cards.** The Customization tab's cards (Flowers, Flower
   Variants, Fillers, Wrapper Colors, Ribbons, Ribbon Variants, Styles) are now
@@ -140,6 +140,38 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
     Now scroll + tab + open card all persist after a save (verified in Edge via Playwright).
 
 ## Latest work (2026-08-15)
+
+### Modal-based admin dashboard
+
+- **Only Products, Services, and Customization use modals (2026-08-15).** The collapsible
+  accordion cards were replaced with `.section-card` buttons that open a
+  `.edit-modal.section-modal` (`.edit-modal-box.wide` + `.modal-head` with a
+  `.modal-close` X). 16 modals total: Products = 2 (Add Product, Products list),
+  Services = 7 (Add Service Photo + one per service category), Customization = 7
+  (Flowers, Flower Variants, Fillers, Wrapper Colors, Ribbons, Ribbon Variants, Styles).
+- **Categories, Orders, Messages, and Reports are plain cards** (like the Payments tab) —
+  the user decided those didn't need modals. Categories = Add New Category + Product
+  Categories cards; Orders = filter + badges + table + pagination card; Messages = search
+  + message list + pagination card; Reports = generate-form card + `#printArea`
+  (stat cards, Top Products, Sales by Municipality, Sales Trend) + print button.
+- **Modals live inside their tab panel** (`<div class="tab-panel">`), so they only show
+  when that tab is active. They open via `data-modal` on the section-card, close via the
+  X (`.modal-close`) or the backdrop click. Accordion CSS/JS removed.
+- **Sticky save tracks the open modal:** `saveDashboardState(modalId)` /
+  `restoreDashboardState()` use sessionStorage `hs_scroll` + `hs_open_modal` +
+  `hs_modal_scroll` (modal box scroll). The capture submit listener grabs the form's
+  enclosing `.section-modal`; the inline-edit hidden-form saves pass the row's modal id.
+  `editProductModal`, `editServicePhotoModal`, and `photoLightbox` are NOT `.section-modal`
+  so they never reopen stale after a reload. Verified in Edge via Playwright (inline-edit
+  save from Flower Variants reopens `modalFlowerVariants` + restores scroll/tab).
+- **Sticky pagination:** every `.pagination a` link calls `saveDashboardState()` on click,
+  so switching page 1 → 2 keeps the modal open (Products/Services/Customization) or just
+  the scroll position (Orders/Messages plain cards). Verified in Edge: products page 2
+  keeps `modalProducts` open with the active page = 2.
+- **Messages got pagination + search:** `loadMessages(Request $request)` now paginates at
+  **20/page** (`mpage` param) with a `message_search` LIKE filter over name/email/message;
+  the Messages card has a search form and renders pagination only when >1 page.
+- **Orders per page bumped 15 → 20** (`$ordersPerPage = 20` in `loadOrders()`).
 
 ### Payment flow rework: 50% GCash down payment for BOTH methods
 
@@ -214,8 +246,9 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   it broke saves in the browser (page reset + no save, likely CSRF/fetch issues). The
   current design is standard full-page form submissions + the state-preservation above,
   which is reliable. If someone wants true no-reload later, test carefully in-browser.
-- **Session-based scroll/card restore uses sessionStorage** — it only survives one
-  reload, so a browser hard-refresh goes back to collapsed/default. That's intentional.
+- **Session-based scroll/modal restore uses sessionStorage** — it only survives one
+  reload, so a browser hard-refresh goes back to the dashboard defaults (no modal open).
+  That's intentional.
 - **419 on login**: session/cookie staleness. Hard-refresh or clear cookies if it recurs.
   SESSION_LIFETIME=120 in `.env`.
 - **v2 DB lost filler photos/prices** (fillers are ₱0 with no image). Decided to keep as-is;
