@@ -79,7 +79,7 @@
                                                         <div class="v-label">Size</div>
                                                         <div class="v-row">
                                                             @foreach ($sizeVariants as $variant)
-                                                                <button type="button" class="size-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}">
+                                                                <button type="button" class="size-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}" title="{{ $variant->display_name }}">
                                                                     {{ $variant->display_name }}@if ($variant->price > 0) <span style="color:var(--accent);font-weight:700;">₱{{ number_format($variant->price, 2) }}</span>@endif
                                                                 </button>
                                                             @endforeach
@@ -213,7 +213,7 @@
                                         <div class="v-label">Size</div>
                                         <div class="v-row" style="justify-content:flex-start;">
                                             @foreach ($rSizes as $variant)
-                                                <button type="button" class="size-option ribbon-size" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}">
+                                                <button type="button" class="size-option ribbon-size" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}" title="{{ $variant->display_name }}">
                                                     {{ $variant->display_name }}@if ($variant->price > 0) <span style="color:var(--accent);font-weight:700;">₱{{ number_format($variant->price, 2) }}</span>@endif
                                                 </button>
                                             @endforeach

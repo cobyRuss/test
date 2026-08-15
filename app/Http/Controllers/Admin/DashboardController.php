@@ -54,6 +54,9 @@ class DashboardController extends Controller
 
         switch ($request->input('action')) {
                 case 'add_product':
+                    $request->validate([
+                        'image' => ['required', 'image', 'max:5120'],
+                    ]);
                     $product = Product::query()->create([
                         'name' => $request->input('name'),
                         'description' => $request->input('description'),
@@ -181,7 +184,6 @@ class DashboardController extends Controller
                         'image_url' => $this->storeUploadedImage($request->file('image')),
                         'is_active' => $request->boolean('is_active'),
                         'sort_order' => (int) $request->input('sort_order', 0),
-                        'stock_quantity' => max(0, (int) $request->input('stock_quantity', 100)),
                     ]);
                     $message = 'Flower added successfully!';
                     session(['active_tab' => 'customization']);
@@ -197,7 +199,6 @@ class DashboardController extends Controller
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
                             'sort_order' => (int) $request->input('sort_order', 0),
-                            'stock_quantity' => max(0, (int) $request->input('stock_quantity', $flower->stock_quantity)),
                         ];
 
                         $imageUrl = $this->storeUploadedImage($request->file('image'));

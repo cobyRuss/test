@@ -8,12 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasColumn('customization_options', 'stock_quantity')) {
-            Schema::table('customization_options', function (Blueprint $table) {
-                $table->unsignedInteger('stock_quantity')->default(100)->after('sort_order');
-            });
-        }
-
         if (! Schema::hasColumn('products', 'is_active')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->boolean('is_active')->default(true)->after('image_url');
@@ -39,12 +33,6 @@ return new class extends Migration
         if (Schema::hasColumn('products', 'is_active')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->dropColumn('is_active');
-            });
-        }
-
-        if (Schema::hasColumn('customization_options', 'stock_quantity')) {
-            Schema::table('customization_options', function (Blueprint $table) {
-                $table->dropColumn('stock_quantity');
             });
         }
     }

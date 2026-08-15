@@ -20,7 +20,6 @@ class CustomizationOption extends Model
         'hex_color',
         'is_active',
         'sort_order',
-        'stock_quantity',
     ];
 
     public function variants()
@@ -32,5 +31,10 @@ class CustomizationOption extends Model
     public function products()
     {
         return $this->belongsToMany(Product::class, 'flower_product', 'flower_id', 'product_id');
+    }
+
+    public function isAvailable(): bool
+    {
+        return (bool) $this->is_active;
     }
 }

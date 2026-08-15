@@ -26,6 +26,10 @@
         .tab-panel.active { display: block; }
         .card { background: #fff; border-radius: 10px; padding: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 22px; }
         .card h3 { color: #8a9b6e; margin: 0 0 16px; }
+        .card.collapsible h3 { cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; user-select: none; margin-bottom: 16px; }
+        .card.collapsible h3::after { content: "\f078"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8rem; color: #8a9b6e; transition: transform 0.25s ease; flex-shrink: 0; }
+        .card.collapsible.collapsed h3::after { transform: rotate(-90deg); }
+        .card.collapsible.collapsed > *:not(h3) { display: none; }
         table.admin-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
         table.admin-table th { background: #f9f3f4; text-align: left; padding: 10px 12px; color: #5a4a4a; }
         table.admin-table td { padding: 10px 12px; border-bottom: 1px solid #f0ebea; }
@@ -91,7 +95,7 @@
 </head>
 <body>
     <div class="admin-topbar">
-        <h2><i class="fas fa-seedling"></i> HappyStem Admin</h2>
+        <h2>HappyStem Admin</h2>
         <div style="display:flex;gap:20px;align-items:center;">
             <span style="font-size:0.85rem;"><i class="fas fa-user-shield"></i> {{ Auth::guard('admin')->user()->username }}</span>
             <form action="{{ route('admin.logout') }}" method="POST" style="margin:0;">
@@ -119,6 +123,18 @@
         <div class="admin-content">
             @if (session('message'))
                 <div class="alert alert-success">{{ session('message') }}</div>
+            @endif
+            @if (session('error'))
+                <div class="alert" style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c2;">{{ session('error') }}</div>
+            @endif
+            @if ($errors->any())
+                <div class="alert" style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c2;">
+                    <ul style="margin:0;padding-left:18px;">
+                        @foreach ($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             @endif
 
             {{-- ─────────── PRODUCTS ─────────── --}}
@@ -154,14 +170,14 @@
                                     <option value="0">No</option>
                                 </select>
                             </div>
-                            <div><label>Product Image</label><input type="file" name="image" accept="image/*"></div>
+                            <div><label>Product Image <span style="color:#c94a4a;">*</span></label><input type="file" name="image" accept="image/*" required></div>
                             <div style="grid-column: 1 / -1;"><label>Description</label><textarea name="description" rows="2"></textarea></div>
                         </div>
                         <button type="submit" class="btn-sm btn-ok"><i class="fas fa-plus"></i> Add Product</button>
                     </form>
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Products ({{ $totalProducts }})</h3>
                     <form method="GET" action="{{ route('admin.dashboard') }}" class="filter-bar">
                         <input type="hidden" name="tab" value="products">
@@ -299,7 +315,7 @@
                 </div>
 
                 @foreach ($serviceCategories as $cat)
-                    <div class="card collapsible">
+                    <div class="card collapsible collapsed">
                         <h3>{{ $serviceNames[$cat] }}</h3>
                         <table class="admin-table">
                             <thead><tr><th></th><th>Image</th><th>Caption</th><th>Action</th></tr></thead>
@@ -343,7 +359,6 @@
                         <div class="form-grid">
                             <div><label>Display Name</label><input type="text" name="display_name" placeholder="e.g. Roses" required></div>
                             <div><label>Price (₱)</label><input type="number" step="0.01" min="0" name="price" required></div>
-                            <div><label>Stock Qty (0 = out of stock)</label><input type="number" min="0" name="stock_quantity" value="100" required></div>
                             <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
                             <div><label>Photo</label><input type="file" name="image" accept="image/*"></div>
                             <div>
@@ -358,7 +373,7 @@
                     </form>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:16px 0 14px;">Click any value to edit it, then press <strong>Save</strong>. Click a photo to enlarge it and replace it.</p>
                     <table class="admin-table">
-                        <thead><tr><th></th><th>Display Name</th><th>Price</th><th>Stock</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                        <thead><tr><th></th><th>Display Name</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
                         <tbody>
                             @forelse ($flowersPaged as $flower)
                                 <tr class="flower-edit-row edit-row" data-id="{{ $flower->id }}" data-form="flowerEditForm" data-delete-form="flowerDeleteForm">
@@ -379,12 +394,6 @@
                                         <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" data-field="price" value="{{ $flower->price }}" title="Click to edit price">
                                     </td>
                                     <td>
-                                        <input class="inline-edit inline-edit-num {{ (int) $flower->stock_quantity <= 0 ? 'oos' : '' }}" type="number" min="0" data-field="stock_quantity" value="{{ $flower->stock_quantity }}" title="Click to edit stock (0 = out of stock)">
-                                        @if ((int) $flower->stock_quantity <= 0)
-                                            <span class="oos-badge">Out of stock</span>
-                                        @endif
-                                    </td>
-                                    <td>
                                         <input class="inline-edit inline-edit-num" type="number" min="0" data-field="sort_order" value="{{ $flower->sort_order }}" title="Click to edit sort order">
                                     </td>
                                     <td>
@@ -399,7 +408,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="empty-row">No flowers yet.</td></tr>
+                                <tr><td colspan="6" class="empty-row">No flowers yet.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -413,7 +422,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Flower Variants ({{ $flowerVariantsTotal }})</h3>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">A variant price above ₱0 replaces the flower's per-stem price when selected. Leave at ₱0 to keep the flower's base price.</p>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
@@ -515,7 +524,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Fillers ({{ $fillersTotal }})</h3>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Customers can pick each filler only once (but may pick several different fillers).</p>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
@@ -586,7 +595,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Wrapper Colors ({{ $customColors->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -665,7 +674,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Ribbons ({{ $customRibbons->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -734,7 +743,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Ribbon Variants ({{ $ribbonVariantsTotal }})</h3>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Add a Color (hex or pattern image) or a Size (e.g. 1 inch) to each ribbon. If the size price is ₱0 the color price is used.</p>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
@@ -836,7 +845,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible">
+                <div class="card collapsible collapsed">
                     <h3>Styles ({{ $customStyles->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -1236,7 +1245,6 @@
         <input type="hidden" name="display_name" id="flower-edit-display-name">
         <input type="hidden" name="name" id="flower-edit-name">
         <input type="hidden" name="price" id="flower-edit-price">
-        <input type="hidden" name="stock_quantity" id="flower-edit-stock">
         <input type="hidden" name="sort_order" id="flower-edit-sort">
         <input type="hidden" name="is_active" id="flower-edit-active" value="1">
         <input type="file" name="image" id="flower-edit-image" class="photo-file-input" accept="image/*">
@@ -1428,7 +1436,7 @@
                 });
                 row.querySelector('.save-row-btn').addEventListener('click', function() {
                     editForm.querySelector('[name="id"]').value = row.dataset.id;
-                    ['display_name', 'name', 'price', 'sort_order', 'stock_quantity', 'hex_color'].forEach(field => {
+                    ['display_name', 'name', 'price', 'sort_order', 'hex_color'].forEach(field => {
                         const src = row.querySelector('[data-field="' + field + '"]');
                         const dst = editForm.querySelector('[name="' + field + '"]');
                         if (src && dst) dst.value = src.value;
@@ -1546,25 +1554,63 @@
             sel.addEventListener('change', toggleHex);
             toggleHex();
         });
+
+        document.querySelectorAll('.card.collapsible h3').forEach(h3 => {
+            h3.addEventListener('click', () => {
+                const card = h3.parentElement;
+                const wasCollapsed = card.classList.contains('collapsed');
+                card.closest('.tab-panel').querySelectorAll('.card.collapsible').forEach(other => {
+                    if (other !== card) other.classList.add('collapsed');
+                });
+                card.classList.toggle('collapsed', !wasCollapsed);
+            });
+        });
         }
 
         function saveDashboardState() {
+            const activePanel = document.querySelector('.tab-panel.active');
+            const openCardEl = activePanel ? activePanel.querySelector('.card.collapsible:not(.collapsed)') : null;
+            const ref = openCardEl ? {
+                panel: openCardEl.closest('.tab-panel') ? openCardEl.closest('.tab-panel').id : '',
+                index: Array.prototype.indexOf.call(openCardEl.parentElement.querySelectorAll(':scope > .card.collapsible'), openCardEl)
+            } : null;
             sessionStorage.setItem('hs_scroll', String(window.scrollY));
+            sessionStorage.setItem('hs_open_card', ref ? JSON.stringify(ref) : '');
         }
 
         function restoreDashboardState() {
-            const savedScroll = sessionStorage.getItem('hs_scroll');
-            if (!savedScroll) return;
-
-            const apply = () => {
-                window.scrollTo(0, parseInt(savedScroll, 10));
-            };
-
-            apply();
-            if (document.readyState !== 'complete') {
-                window.addEventListener('load', apply, { once: true });
+            const refJson = sessionStorage.getItem('hs_open_card');
+            if (refJson) {
+                try {
+                    const ref = JSON.parse(refJson);
+                    const panel = document.getElementById(ref.panel);
+                    if (panel) {
+                        const cards = panel.querySelectorAll(':scope > .card.collapsible');
+                        if (cards[ref.index]) {
+                            cards[ref.index].classList.remove('collapsed');
+                            panel.querySelectorAll(':scope > .card.collapsible').forEach(other => {
+                                if (other !== cards[ref.index]) other.classList.add('collapsed');
+                            });
+                        }
+                    }
+                } catch (e) {}
             }
+
+            const savedScroll = sessionStorage.getItem('hs_scroll');
+            if (savedScroll !== null && savedScroll !== '') {
+                const apply = () => {
+                    window.scrollTo(0, parseInt(savedScroll, 10) || 0);
+                };
+                if (document.readyState === 'complete') {
+                    apply();
+                } else {
+                    window.addEventListener('load', apply, { once: true });
+                    apply();
+                }
+            }
+
             sessionStorage.removeItem('hs_scroll');
+            sessionStorage.removeItem('hs_open_card');
         }
 
         document.addEventListener('submit', saveDashboardState, true);

@@ -72,6 +72,15 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   swatches; `image_url` wins over `hex_color`.
 - Ribbon selection is single-choice + toggleable (click again to remove).
 - Ribbon price: size variant price > 0 wins, else color variant price, else 0.
+- Stock was **merged into Active (2026-08-15)**: no `stock_quantity`, no `in_stock` —
+  "if active is on, it means it's in stock." One Active toggle per item (flowers, variants,
+  ribbons, fillers, colors, styles). `CustomizationOption::isAvailable()` = `is_active`.
+  A flower/filler is available iff active; a product is available iff `is_active` AND every
+  linked flower is active (`Product::is_available`, `categoryAvailability()`). Inactive
+  flowers/fillers are hidden on the customize page; inactive variants are never loaded.
+- Admin dashboard is sticky after saves: `saveDashboardState()`/`restoreDashboardState()`
+  (sessionStorage `hs_scroll` + `hs_open_card`) — the open card is captured within the
+  **active tab panel only**, scroll + card restore after the POST redirect.
 - Payment: **both COD and GCash require a 50% GCash down payment** before confirmation.
   `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Deposit
   Paid) → `completed` (Fully Paid on delivery). GCash screenshot is required.

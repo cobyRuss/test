@@ -28,6 +28,6 @@ class Product extends Model
             return false;
         }
 
-        return $this->flowers->every(fn (CustomizationOption $flower) => (int) $flower->stock_quantity > 0);
+        return $this->flowers->every(fn (CustomizationOption $flower) => $flower->isAvailable());
     }
 }

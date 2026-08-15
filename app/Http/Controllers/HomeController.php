@@ -67,7 +67,7 @@ class HomeController extends Controller
             $total = $category->products()->count();
             $available = $category->products()
                 ->where('products.is_active', true)
-                ->whereDoesntHave('flowers', fn ($q) => $q->where('stock_quantity', '<=', 0))
+                ->whereDoesntHave('flowers', fn ($q) => $q->where('customization_options.is_active', false))
                 ->count();
 
             $result[$category->slug] = ['total' => $total, 'available' => $available];

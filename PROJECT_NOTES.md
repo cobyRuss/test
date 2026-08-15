@@ -66,17 +66,16 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   and its data migrated into the pivot. Products appear in every category they belong to
   (shop filter, home filter, related items, admin filter). Admin product form is now a
   multi-select (`categories[]`). Seeder attaches categories via the relation.
-- **Flower stock → product availability cascade.** `customization_options.stock_quantity`
+- **Flower stock → product availability cascade.** ~~`customization_options.stock_quantity`
   (default 100; 0 = out of stock) drives product availability through a new `flower_product`
-  pivot (`product_id` + `flower_id`, FK cascade). `Product::is_available` is true only if
-  `is_active` AND every linked flower has `stock_quantity > 0`. Products with no flower
-  links are always available (unless manually deactivated). `products.is_active` (admin
-  toggle) also hides products. UI: storefront cards/detail pages get an "Unavailable"
-  overlay and disabled buttons; category filter buttons show "(Unavailable)" when a whole
-  category is out of stock; customize page hides out-of-stock flowers; cart add endpoint
+  pivot (`product_id` + `flower_id`, FK cascade).~~ **REPLACED 2026-08-15 — see "Stock rework"
+  below.** Availability is now active-based (a flower is available iff `is_active`; a product
+  is available iff it and all its linked flowers are active). UI: storefront cards/detail pages get an
+  "Unavailable" overlay and disabled buttons; category filter buttons show "(Unavailable)" when a whole
+  category is unavailable; customize page hides inactive flowers/fillers and never loads inactive
+  variants; cart add endpoint
   rejects unavailable products. Admin: product form has "Flowers used" multi-select +
-  Active toggle, edit modal populates them, products table shows an Availability badge,
-  flower form/table/modal show Stock Qty. Seeder links products to flowers by category.
+  Active toggle, edit modal populates them, products table shows an Availability badge.
 - Fixed/checked intermittent **419 "Page Expired"** on login (CSRF): verified sessions
   table exists; was a stale-session/cookie issue, not a bug.
 - **Admin flowers table cleaned up** (Customization tab):
@@ -84,7 +83,7 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
     Display Name server-side in `DashboardController::slugifyFlowerName()` ("Local Roses"
     -> `local_roses`; empty -> `flower_<timestamp>`), so the internal `name` column still
     gets populated but is never shown or typed by hand.
-  - Inline editing: click display name / name / price / stock / sort right in the table;
+  - Inline editing: click display name / name / price / sort right in the table;
     the row's Save button submits everything (shared hidden `flowerEditForm`). No Edit modal.
   - Active is a toggle switch (green = on, red = off).
   - Thumbnail is clickable -> enlarges in a lightbox with a "Replace photo" option that
@@ -103,13 +102,15 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 ## Admin dashboard UX (2026-08-13)
 
 > **Update 2026-08-15:** the collapsible/accordion card behavior described below was
-> removed — cards are always expanded now. Everything else (item counts, pagination
+> briefly removed (cards were always expanded), then **restored** the same day per user
+> request — cards are click-to-collapse again. Everything else (item counts, pagination
 > params, page-state restore) still applies.
 
 - **Collapsible accordion cards.** The Customization tab's cards (Flowers, Flower
   Variants, Fillers, Wrapper Colors, Ribbons, Ribbon Variants, Styles) are now
   click-to-expand/collapse dropdowns. Only ONE card can be open at a time (accordion),
-  and clicking an open card closes it. Everything starts collapsed on load.
+  and clicking an open card closes it. Most cards start collapsed on load (a couple, e.g.
+  Add New Product and Flowers, start open).
 - **Add-form + list cards merged.** Each list card now contains its add form on top
   (separated by a dashed border) — no more separate "Add X" cards. Products and Services
   tabs use the same collapsible pattern (Products list, Add Product, Add Service Photo,
@@ -133,6 +134,10 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
     (`hs_scroll`, `hs_open_card`); `restoreDashboardState()` re-applies them after the
     reload. Hooked on a capture-phase `submit` listener + explicit calls before the
     inline-edit hidden forms' `.submit()` and the order-status `onchange` submit.
+    **Fixed 2026-08-15:** the open card is captured within the **active tab panel only**
+    (was picking the first open card globally — e.g. "Add New Product" in the hidden
+    Products tab — so after a save from Flower Variants the wrong card was reopened).
+    Now scroll + tab + open card all persist after a save (verified in Edge via Playwright).
 
 ## Latest work (2026-08-15)
 
@@ -161,8 +166,8 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   briefly a pink→green gradient (uncommitted) which looked like it changed color per
   menu as it scrolled. The sidebar is also **sticky again** (`position: sticky;
   top: 62px`) so it does not scroll away with the content.
-- The collapsible/accordion card behavior introduced 2026-08-13 was removed — cards
-  are always expanded.
+- The collapsible/accordion card behavior introduced 2026-08-13 was removed, then
+  **restored** the same day (user request) — cards are click-to-collapse accordions again.
 
 ### Reports fix
 
@@ -176,6 +181,31 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 - App timezone changed **UTC → Asia/Manila** (`config/app.php`). Report "Generated:"
   timestamps (and all app times) now show Philippine local time instead of being 8
   hours behind. `created_at` values already stored in the DB are still UTC-based.
+
+### Stock rework: on/off switches instead of stock counts
+
+- **Removed the numeric stock count.** `customization_options.stock_quantity` (flowers) is
+  gone; flower availability is no longer a per-flower count.
+- **`in_stock` has been REMOVED again (2026-08-15) — merged into `is_active`.** The user
+  decided stock and active are "basically the same": *if active is on, it means in stock*.
+  So there is **no separate stock state anywhere**. Migration
+  `2026_08_13_000002_add_product_availability.php` no longer creates `in_stock` columns
+  (live DB columns dropped via ALTER + `database.sql` regenerated).
+- **Availability rules (active-only):**
+  - `CustomizationOption::isAvailable()` = `is_active`. A flower or filler is available
+    iff it's active. Variants are only ever loaded when active (= in stock).
+  - `Product::is_available`: `is_active` AND every linked flower `isAvailable()`.
+  - `HomeController` / `ProductController` `categoryAvailability()` SQL: a product counts
+    as available unless `products.is_active` is false or a linked flower is inactive.
+- **Admin:** one **Active** toggle per item (flowers, variants, ribbons, fillers, colors,
+  styles) — no Stock column/select anywhere. The inline-edit save writes only `is_active`.
+- **Customize page:** deactivated fillers/flowers are hidden; deactivated variants are not
+  loaded at all (no `oos` dimming — everything shown is in stock by definition).
+- **Sticky save (2026-08-15):** `saveDashboardState()`/`restoreDashboardState()` were
+  fixed so the open accordion card is captured **within the active tab panel only** (was
+  capturing the first open card globally, e.g. "Add New Product" in the hidden Products
+  tab), and the scroll + card are restored after reload. Verified in Edge via Playwright:
+  save from Flower Variants → scroll position, tab, and open card all persist.
 
 ## Known issues / gotchas
 
