@@ -31,6 +31,17 @@
         .size-option.selected { border-color:var(--accent);background:#fdf2f4;color:#d17b88;font-weight:600; }
         .color-option { width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px #ddd;cursor:pointer;display:inline-block; }
         .color-option.selected { box-shadow:0 0 0 2.5px var(--accent);transform:scale(1.18); }
+        .color-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;justify-content:center; }
+        .color-swatch { border:2px solid #eee;border-radius:10px;padding:8px 6px;text-align:center;transition:all .2s;background:#fff; }
+        .color-swatch.selected { border-color:var(--accent);background:rgba(209,123,136,0.06); }
+        .color-img { width:52px;height:52px;border-radius:50%;overflow:hidden;margin:0 auto 4px;border:1px solid #eee;background:var(--light);position:relative; }
+        .color-img img { width:100%;height:100%;object-fit:cover;display:block; }
+        .color-img i { font-size:1.3rem;color:var(--primary);line-height:52px; }
+        .color-name { font-size:0.7rem;color:var(--dark);font-weight:600;margin-bottom:5px;line-height:1.3; }
+        .color-stepper { display:flex;align-items:center;justify-content:center;gap:5px; }
+        .color-stepper button { background:var(--primary);color:#fff;border:none;width:20px;height:20px;border-radius:50%;cursor:pointer;font-weight:bold;font-size:0.8rem;line-height:1; }
+        .color-stepper button:hover { opacity:.85; }
+        .color-stepper .c-value { font-weight:bold;min-width:16px;text-align:center;font-size:0.78rem; }
         .filler-card { border:2px solid #eee;border-radius:10px;padding:12px;text-align:center;transition:all .2s;cursor:pointer; }
         .filler-card.selected { border-color:var(--accent);background:rgba(209,123,136,0.06); }
         .picked-thumbs { display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px; }
@@ -66,11 +77,13 @@
                                         @endif
                                         <div style="font-size:0.9rem;color:var(--dark);font-weight:600;">{{ $flower->display_name }}</div>
                                         <div class="flower-price" id="flower-price-{{ $flower->id }}">₱{{ number_format($flower->price, 2) }}/stem</div>
-                                        <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-                                            <button type="button" class="qty-minus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">−</button>
-                                            <span class="qty-value" style="font-weight:bold;min-width:22px;text-align:center;">0</span>
-                                            <button type="button" class="qty-plus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">+</button>
-                                        </div>
+                                        @if ($colorVariants->count() === 0)
+                                            <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                                                <button type="button" class="qty-minus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">−</button>
+                                                <span class="qty-value" style="font-weight:bold;min-width:22px;text-align:center;">0</span>
+                                                <button type="button" class="qty-plus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">+</button>
+                                            </div>
+                                        @endif
                                         @if ($sizeVariants->count() || $colorVariants->count())
                                             <button type="button" class="variant-toggle">Options ▾</button>
                                             <div class="variant-panel">
@@ -88,28 +101,30 @@
                                                 @endif
                                                 @if ($colorVariants->count())
                                                     <div class="v-group">
-                                                        <div class="v-label">Color</div>
-                                                        <div class="v-row">
+                                                        <div class="v-label">Color — tap + on each color to add it</div>
+                                                        <div class="color-grid">
                                                             @foreach ($colorVariants as $variant)
-                                                                @php
-                                                                    $twoTone = stripos($variant->display_name, 'two') !== false;
-                                                                    $bg = $variant->hex_color
-                                                                        ?: ($twoTone
-                                                                            ? (stripos($variant->display_name, 'violet') !== false
-                                                                                ? 'linear-gradient(135deg,#9b59b6,#e8b4bc)'
-                                                                                : 'linear-gradient(135deg,#ffffff,#e8b4bc)')
-                                                                            : 'linear-gradient(45deg,#e74c3c,#e8b4bc,#f1c40f,#9b59b6)');
-                                                                @endphp
-                                                                @if ($variant->image_url)
-                                                                    <span class="color-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}"
-                                                                          title="{{ $variant->display_name }}" style="overflow:hidden;">
-                                                                        <img src="{{ asset('images/'.$variant->image_url) }}" alt="{{ $variant->display_name }}"
-                                                                             style="width:100%;height:100%;object-fit:cover;display:block;">
-                                                                    </span>
-                                                                @else
-                                                                    <span class="color-option" data-name="{{ $variant->display_name }}" data-price="{{ $variant->price }}"
-                                                                          title="{{ $variant->display_name }}" style="background:{{ $bg }};"></span>
-                                                                @endif
+                                                                <div class="color-swatch" data-id="{{ $variant->id }}" data-name="{{ $variant->display_name }}"
+                                                                     data-price="{{ $variant->price }}" data-image="{{ $variant->image_url }}">
+                                                                    <div class="color-img">
+                                                                        @if ($variant->image_url)
+                                                                            <img src="{{ asset('images/'.$variant->image_url) }}" alt="{{ $variant->display_name }}">
+                                                                        @else
+                                                                            <i class="fas fa-seedling"></i>
+                                                                        @endif
+                                                                    </div>
+                                                                    <div class="color-name">
+                                                                        {{ $variant->display_name }}
+                                                                        @if ($variant->price > 0)
+                                                                            <span style="color:var(--accent);font-weight:700;">+₱{{ number_format($variant->price, 2) }}</span>
+                                                                        @endif
+                                                                    </div>
+                                                                    <div class="color-stepper">
+                                                                        <button type="button" class="c-minus">−</button>
+                                                                        <span class="c-value">0</span>
+                                                                        <button type="button" class="c-plus">+</button>
+                                                                    </div>
+                                                                </div>
                                                             @endforeach
                                                         </div>
                                                     </div>
@@ -259,6 +274,7 @@
                             <p style="color:var(--secondary);">No selections yet.</p>
                         </div>
 
+                        <div id="designStems" style="font-size:0.85rem;color:var(--secondary);text-align:center;margin-bottom:6px;"></div>
                         <div class="product-price" id="designTotal" style="font-size:1.5rem;text-align:center;margin-bottom:15px;">₱0.00</div>
 
                         <button type="button" class="btn" id="addCustomToCart" style="width:100%;text-align:center;margin-bottom:10px;">
@@ -280,12 +296,26 @@
     document.querySelectorAll('.flower-card').forEach(card => {
         const data = {
             id: card.dataset.id, name: card.dataset.name, basePrice: parseFloat(card.dataset.basePrice || 0),
-            image: card.dataset.image || '', qty: 0, size: null, color: null
+            image: card.dataset.image || '', qty: 0, size: null, colors: {}
         };
         flowers[data.id] = data;
-        const val = card.querySelector('.qty-value');
-        card.querySelector('.qty-plus').addEventListener('click', (e) => { e.stopPropagation(); setQty(card, data, data.qty + 1); });
-        card.querySelector('.qty-minus').addEventListener('click', (e) => { e.stopPropagation(); setQty(card, data, data.qty - 1); });
+
+        const colorSwatches = card.querySelectorAll('.color-swatch');
+
+        if (colorSwatches.length === 0) {
+            card.querySelector('.qty-plus').addEventListener('click', (e) => { e.stopPropagation(); setFlowerQty(data, data.qty + 1); });
+            card.querySelector('.qty-minus').addEventListener('click', (e) => { e.stopPropagation(); setFlowerQty(data, data.qty - 1); });
+        } else {
+            colorSwatches.forEach(sw => {
+                const c = {
+                    id: sw.dataset.id, name: sw.dataset.name,
+                    price: parseFloat(sw.dataset.price || 0), image: sw.dataset.image || '', qty: 0
+                };
+                data.colors[c.id] = c;
+                sw.querySelector('.c-plus').addEventListener('click', (e) => { e.stopPropagation(); setColorQty(data, c, c.qty + 1); });
+                sw.querySelector('.c-minus').addEventListener('click', (e) => { e.stopPropagation(); setColorQty(data, c, c.qty - 1); });
+            });
+        }
 
         const toggle = card.querySelector('.variant-toggle');
         if (toggle) {
@@ -302,38 +332,62 @@
                 card.querySelectorAll('.size-option').forEach(x => x.classList.remove('selected'));
                 opt.classList.add('selected');
                 data.size = { name: opt.dataset.name, price: parseFloat(opt.dataset.price || 0) };
-                updateFlowerPrice(card, data);
-                recompute();
-            });
-        });
-
-        card.querySelectorAll('.color-option').forEach(opt => {
-            opt.addEventListener('click', () => {
-                card.querySelectorAll('.color-option').forEach(x => x.classList.remove('selected'));
-                opt.classList.add('selected');
-                data.color = { name: opt.dataset.name, price: parseFloat(opt.dataset.price || 0) };
+                updateFlowerPrice(data);
                 recompute();
             });
         });
     });
 
-    function setQty(card, data, qty) {
+    function flowerHasSelection(data) {
+        return data.qty > 0 || Object.values(data.colors).some(c => c.qty > 0);
+    }
+
+    function setFlowerQty(data, qty) {
         data.qty = Math.max(0, qty);
+        const card = document.querySelector('.flower-card[data-id="' + data.id + '"]');
         card.querySelector('.qty-value').textContent = data.qty;
         card.classList.toggle('selected', data.qty > 0);
         recompute();
     }
 
-    function unitPrice(f) {
-        let p = f.basePrice;
-        if (f.size && parseFloat(f.size.price) > 0) p = parseFloat(f.size.price);
-        if (f.color && parseFloat(f.color.price) > 0) p = parseFloat(f.color.price);
+    function setColorQty(data, c, qty) {
+        c.qty = Math.max(0, qty);
+        const card = document.querySelector('.flower-card[data-id="' + data.id + '"]');
+        const sw = card.querySelector('.color-swatch[data-id="' + c.id + '"]');
+        sw.querySelector('.c-value').textContent = c.qty;
+        sw.classList.toggle('selected', c.qty > 0);
+        card.classList.toggle('selected', flowerHasSelection(data));
+        recompute();
+    }
+
+    function lineItems() {
+        const lines = [];
+        Object.values(flowers).forEach(f => {
+            const colors = Object.values(f.colors).filter(c => c.qty > 0);
+            if (colors.length) {
+                colors.forEach(c => lines.push({ flower: f, color: c, size: f.size, qty: c.qty }));
+            } else if (f.qty > 0) {
+                lines.push({ flower: f, color: null, size: f.size, qty: f.qty });
+            }
+        });
+        return lines;
+    }
+
+    function lineLabel(l) {
+        const vars = [l.size?.name, l.color?.name].filter(Boolean).join(', ');
+        return l.flower.name + (vars ? ' (' + vars + ')' : '');
+    }
+
+    function unitPrice(line) {
+        let p = line.flower.basePrice;
+        if (line.size && parseFloat(line.size.price) > 0) p = parseFloat(line.size.price);
+        else if (line.color && parseFloat(line.color.price) > 0) p = parseFloat(line.color.price);
         return p;
     }
 
-    function updateFlowerPrice(card, data) {
+    function updateFlowerPrice(data) {
         const el = document.getElementById('flower-price-' + data.id);
-        if (el) el.textContent = '₱' + unitPrice(data).toFixed(2) + '/stem';
+        if (el) el.textContent = '₱' + unitPrice({ flower: data, size: data.size, color: null }).toFixed(2) + '/stem';
     }
 
     const fillers = {};
@@ -458,15 +512,8 @@
         });
     });
 
-    function selectedFlowers() {
-        return Object.values(flowers).filter(f => f.qty > 0);
-    }
     function selectedFillers() {
         return Object.values(fillers).filter(f => f.qty > 0);
-    }
-
-    function variantLabel(f) {
-        return [f.size?.name, f.color?.name].filter(Boolean).join(', ');
     }
 
     function thumbBox(image, title, badge) {
@@ -481,15 +528,16 @@
         return '<div class="thumb-box" title="Wrapper: ' + name + '"><span class="thumb-swatch" style="background:' + bg + '"></span></div>';
     }
 
-    function renderThumbs(sel, selF) {
+    function renderThumbs(lines, selF) {
         const box = document.getElementById('pickedThumbs');
-        if (!sel.length && !selF.length && !wrapper && !style && !ribbon) {
+        if (!lines.length && !selF.length && !wrapper && !style && !ribbon) {
             box.innerHTML = '<p style="color:var(--secondary);font-size:0.88rem;">Nothing picked yet.</p>';
             return;
         }
         let html = '';
-        sel.forEach(f => {
-            html += thumbBox(f.image, f.name + (variantLabel(f) ? ' (' + variantLabel(f) + ')' : ''), f.qty > 1 ? f.qty : '');
+        lines.forEach(l => {
+            const img = (l.color && l.color.image) ? l.color.image : l.flower.image;
+            html += thumbBox(img, lineLabel(l), l.qty > 1 ? l.qty : '');
         });
         selF.forEach(f => html += thumbBox(f.image, f.name, f.qty > 1 ? f.qty : ''));
         if (wrapper) html += swatchBox(wrapper.name, wrapper.hex);
@@ -504,44 +552,48 @@
     }
 
     function recompute() {
-        const sel = selectedFlowers();
+        const lines = lineItems();
         const selF = selectedFillers();
         let total = 0;
-        const lines = [];
-        sel.forEach(f => {
-            const sub = unitPrice(f) * f.qty;
+        let stems = 0;
+        const out = [];
+        lines.forEach(l => {
+            const sub = unitPrice(l) * l.qty;
             total += sub;
-            const vars = variantLabel(f);
-            lines.push('<p><strong>' + f.name + '</strong>' + (vars ? ' <span class="var">(' + vars + ')</span>' : '') + ' &times; ' + f.qty + ' &mdash; &#8369;' + sub.toFixed(2) + '</p>');
+            stems += l.qty;
+            const vars = [l.size?.name, l.color?.name].filter(Boolean).join(', ');
+            out.push('<p><strong>' + l.flower.name + '</strong>' + (vars ? ' <span class="var">(' + vars + ')</span>' : '') + ' &times; ' + l.qty + ' &mdash; &#8369;' + sub.toFixed(2) + '</p>');
         });
         selF.forEach(f => {
             if (f.price <= 0) return;
             const sub = f.price * f.qty;
             total += sub;
-            lines.push('<p><strong>' + f.name + '</strong> &times; ' + f.qty + ' &mdash; &#8369;' + sub.toFixed(2) + '</p>');
+            out.push('<p><strong>' + f.name + '</strong> &times; ' + f.qty + ' &mdash; &#8369;' + sub.toFixed(2) + '</p>');
         });
         if (wrapper) {
             total += wrapper.price;
-            lines.push('<p>Wrapper: <span class="var">' + wrapper.name + '</span>' + (wrapper.price > 0 ? ' (+&#8369;' + wrapper.price.toFixed(2) + ')' : '') + '</p>');
+            out.push('<p>Wrapper: <span class="var">' + wrapper.name + '</span>' + (wrapper.price > 0 ? ' (+&#8369;' + wrapper.price.toFixed(2) + ')' : '') + '</p>');
         }
         if (ribbon) {
             const rp = ribbonPrice();
             total += rp;
-            lines.push('<p>Ribbon: <span class="var">' + ribbonLabel() + '</span>' + (rp > 0 ? ' (+&#8369;' + rp.toFixed(2) + ')' : '') + '</p>');
+            out.push('<p>Ribbon: <span class="var">' + ribbonLabel() + '</span>' + (rp > 0 ? ' (+&#8369;' + rp.toFixed(2) + ')' : '') + '</p>');
         }
         if (style) {
             total += style.price;
-            lines.push('<p>Style: <span class="var">' + style.name + '</span> (+&#8369;' + style.price.toFixed(2) + ')</p>');
+            out.push('<p>Style: <span class="var">' + style.name + '</span> (+&#8369;' + style.price.toFixed(2) + ')</p>');
         }
-        document.getElementById('designSummary').innerHTML = lines.length ? lines.join('') : '<p style="color:var(--secondary);">No selections yet.</p>';
+        document.getElementById('designSummary').innerHTML = out.length ? out.join('') : '<p style="color:var(--secondary);">No selections yet.</p>';
         document.getElementById('designTotal').textContent = '₱' + total.toFixed(2);
-        renderThumbs(sel, selF);
+        document.getElementById('designStems').textContent = stems ? stems + ' stem' + (stems > 1 ? 's' : '') : '';
+        renderThumbs(lines, selF);
     }
 
     function summaryText() {
         const parts = [];
-        selectedFlowers().forEach(f => {
-            parts.push(f.name + (variantLabel(f) ? ' (' + variantLabel(f) + ')' : '') + ' x' + f.qty);
+        lineItems().forEach(l => {
+            const vars = [l.size?.name, l.color?.name].filter(Boolean).join(', ');
+            parts.push(l.flower.name + (vars ? ' (' + vars + ')' : '') + ' x' + l.qty);
         });
         selectedFillers().forEach(f => parts.push(f.name + ' x' + f.qty));
         if (wrapper) parts.push('Wrapper: ' + wrapper.name);
@@ -555,7 +607,8 @@
     }
 
     async function addCustom() {
-        if (selectedFlowers().length === 0) {
+        const lines = lineItems();
+        if (lines.length === 0) {
             alert('Please select at least one flower first.');
             return null;
         }
@@ -569,6 +622,13 @@
         fd.append('price', total);
         fd.append('description', summaryText());
         fd.append('quantity', 1);
+        fd.append('total_stems', lines.reduce((s, l) => s + l.qty, 0));
+        fd.append('items', JSON.stringify(lines.map(l => ({
+            flower: l.flower.name,
+            color: l.color ? l.color.name : '',
+            size: l.size ? l.size.name : '',
+            qty: l.qty
+        }))));
         const res = await fetch("{{ route('cart.addCustom') }}", {
             method: 'POST',
             body: fd,

@@ -10,7 +10,10 @@ current Laravel app ("main" branch).
 
 Two customer-facing experiences:
 - **Shop**: browse products, add to cart, checkout (COD / GCash with down payment + verification).
-- **Customize**: build a custom bouquet — pick flowers (+ size/color variants), fillers, wrapper color, **ribbon**, and arrangement style. Custom design is stored as a text `description` in the cart session (`custom_arrangement`) and passed through to order items.
+- **Customize**: build a custom bouquet — pick flowers (+ size/color variants, **per-color
+  quantities**), fillers, wrapper color, **ribbon**, and arrangement style. Custom design
+  is stored as a structured `items` array in the cart session (`custom_arrangement`) plus a
+  text `description`, and the breakdown is persisted to `order_items.description`.
 
 Admin side (`/admin/login`): products, categories, services, payments (GCash verify), orders, reports, messages, and a **Customization** tab for managing flowers, flower variants, wrapper colors, ribbons, styles, and fillers.
 
@@ -140,6 +143,35 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
     Now scroll + tab + open card all persist after a save (verified in Edge via Playwright).
 
 ## Latest work (2026-08-15)
+
+### Custom bouquet: per-color quantities + image swatches (bug fix)
+
+- **Bug fixed:** quantities were tracked per flower with a single shared color, so picking
+  colors merged counts (3 red → switch to white showed 8 white instead of 3 red + 5 white).
+- **New model:** each flower's **color variant has its own quantity stepper** (image swatch
+  with a `+`/`−` stepper under it). Multiple colors of one flower are separate line items
+  in the summary + thumbs + totals, e.g. `Local Roses (Red) × 3 — ₱225` and
+  `Local Roses (White) × 5 — ₱375`, stem counter `8 stems`, total `₱680`.
+- **Image swatches only:** hex fallback removed for flower color options — always the
+  variant photo (`image_url`); flowers without any image show a leaf placeholder. The
+  user will upload photos for every color (no hex dot under the name).
+- Flowers WITHOUT colors (e.g. Sunflowers, size-only) keep the single flower-level stepper.
+- **Structured data model:** `cart.addCustom` now accepts an `items` JSON array and stores
+  it in the session as `custom_arrangement.items` = `[{flower, color, size, qty}]` plus
+  `total_stems`. `normalizeCustomItems()` in `CartController` sanitizes it (int qty ≥ 1,
+  skips invalid rows). The `description` text is still built client-side (`summaryText()`)
+  for display.
+- **Orders persist the breakdown:** new nullable `order_items.description` column
+  (migration `2026_08_15_000001_add_description_to_order_items_table.php`, already in
+  `database.sql`). Checkout stores it for custom items; orders/show, cancel, cancel-success
+  render it under the item name.
+- Verified end-to-end with Playwright + Edge: built 3 red + 5 white roses + Red wrapper,
+  added to cart (description + ₱680), placed a COD order, confirmed `order_items.description`
+  and the order page show both lines. Test data cleaned up afterward.
+- **Gotchas hit during testing (fixed/noted):** a stale `artisan serve` process can serve a
+  `production` env with no app key (restart it); test bcrypt hashes must use cost 12
+  (app default) or Laravel's RehashPassword 500s on login (it writes to a `password`
+  column that doesn't exist — real users use cost 12 so they're unaffected).
 
 ### Modal-based admin dashboard
 

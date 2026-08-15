@@ -22,9 +22,14 @@
             <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:25px;">
                 <h3 style="color:var(--secondary);margin-bottom:15px;">Order Items</h3>
                 @foreach ($orderItems as $item)
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:0.92rem;">
-                        <span>{{ $item->product_name }} &times; {{ $item->quantity }}</span>
-                        <span>₱{{ number_format($item->price * $item->quantity, 2) }}</span>
+                    <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:0.92rem;">
+                        <div style="display:flex;justify-content:space-between;">
+                            <span>{{ $item->product_name }} &times; {{ $item->quantity }}</span>
+                            <span>₱{{ number_format($item->price * $item->quantity, 2) }}</span>
+                        </div>
+                        @if (! empty($item->description))
+                            <p style="font-size:0.8rem;color:var(--secondary);margin-top:4px;">{{ $item->description }}</p>
+                        @endif
                     </div>
                 @endforeach
                 <p style="display:flex;justify-content:space-between;margin-top:12px;font-weight:700;">

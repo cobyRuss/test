@@ -17,10 +17,15 @@
                 <div style="text-align:left;background:var(--light);border-radius:8px;padding:15px;margin:20px 0;">
                     <h4 style="color:var(--secondary);margin-bottom:10px;">Cancelled Items</h4>
                     @foreach ($cancelled['items'] as $item)
-                        <p style="font-size:0.92rem;display:flex;justify-content:space-between;">
-                            <span>{{ $item['product_name'] }} &times; {{ $item['quantity'] }}</span>
-                            <span>₱{{ number_format($item['price'] * $item['quantity'], 2) }}</span>
-                        </p>
+                        <div style="font-size:0.92rem;padding:4px 0;">
+                            <div style="display:flex;justify-content:space-between;">
+                                <span>{{ $item['product_name'] }} &times; {{ $item['quantity'] }}</span>
+                                <span>₱{{ number_format($item['price'] * $item['quantity'], 2) }}</span>
+                            </div>
+                            @if (! empty($item['description']))
+                                <p style="font-size:0.8rem;color:var(--secondary);margin-top:2px;">{{ $item['description'] }}</p>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
 

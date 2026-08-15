@@ -28,9 +28,14 @@
                 <div style="flex:1.2;min-width:300px;background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);">
                     <h3 style="color:var(--secondary);margin-bottom:15px;">Items</h3>
                     @foreach ($items as $item)
-                        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:0.92rem;">
-                            <span>{{ $item->product_name }} &times; {{ $item->quantity }}</span>
-                            <span style="color:var(--accent);font-weight:600;">₱{{ number_format($item->price * $item->quantity, 2) }}</span>
+                        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:0.92rem;">
+                            <div style="display:flex;justify-content:space-between;">
+                                <span>{{ $item->product_name }} &times; {{ $item->quantity }}</span>
+                                <span style="color:var(--accent);font-weight:600;">₱{{ number_format($item->price * $item->quantity, 2) }}</span>
+                            </div>
+                            @if (! empty($item->description))
+                                <p style="font-size:0.8rem;color:var(--secondary);margin-top:4px;">{{ $item->description }}</p>
+                            @endif
                         </div>
                     @endforeach
                     <p style="display:flex;justify-content:space-between;margin-top:12px;"><span>Delivery Fee</span><span>₱{{ number_format($order->delivery_fee, 2) }}</span></p>

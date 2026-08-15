@@ -51,6 +51,8 @@ class CartService
                 'image_url' => null,
                 'custom' => true,
                 'description' => $custom['description'] ?? '',
+                'total_stems' => (int) ($custom['total_stems'] ?? 0),
+                'items' => $custom['items'] ?? [],
             ];
         }
 

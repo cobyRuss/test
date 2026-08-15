@@ -51,9 +51,17 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   + `.modal-close`. Modals live INSIDE their tab panel (hidden when tab inactive).
 - Images upload via `storeUploadedImage()` (saves to `public/images/`); hex via
   `normalizeHexColor()`. Both already handle image+hex; image takes priority over hex.
-- Custom bouquet is text-only: `description` string built client-side in
-  `resources/views/customize/index.blade.php` (JS `summaryText()`), stored in session
-  as `custom_arrangement` by `CartController@addCustom`.
+- Custom bouquet selection model: each flower's **color variant has its own quantity
+  stepper** (image swatch, no hex fallback) — multiple colors of the same flower are
+  separate line items, e.g. `3x Local Roses (Red)` + `5x Local Roses (White)`. Stored in
+  session `custom_arrangement` as a structured array `items` = [{flower, color, size, qty}]
+  plus `total_stems`, `description` (display text from JS `summaryText()`), `price`,
+  `quantity` (1). Built in `resources/views/customize/index.blade.php`, stored by
+  `CartController@addCustom` (via `normalizeCustomItems()`). Flowers WITHOUT color
+  variants (e.g. Sunflowers) keep a single flower-level stepper (`qty`). Price per line:
+  size price > 0 wins, else color price > 0, else flower base price.
+- `order_items` has a nullable `description` column (added 2026-08-15); checkout persists
+  the custom breakdown there and the order/cancel/cancel-success views render it.
 
 ## Database / dump rules
 

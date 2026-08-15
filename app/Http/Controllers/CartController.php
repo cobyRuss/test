@@ -115,6 +115,8 @@ class CartController extends Controller
         $price = (float) $request->input('price', 0);
         $description = $request->input('description', '');
         $quantity = max(1, (int) $request->input('quantity', 1));
+        $totalStems = max(0, (int) $request->input('total_stems', 0));
+        $items = $this->normalizeCustomItems($request->input('items'));
 
         $existing = session('custom_arrangement');
 
@@ -123,6 +125,8 @@ class CartController extends Controller
             $existing['name'] = $name;
             $existing['price'] = $price;
             $existing['description'] = $description;
+            $existing['total_stems'] = $totalStems;
+            $existing['items'] = $items;
             session(['custom_arrangement' => $existing]);
         } else {
             session([
@@ -131,11 +135,45 @@ class CartController extends Controller
                     'price' => $price,
                     'description' => $description,
                     'quantity' => $quantity,
+                    'total_stems' => $totalStems,
+                    'items' => $items,
                 ],
             ]);
         }
 
         return response()->json(['success' => true]);
+    }
+
+    protected function normalizeCustomItems($raw): array
+    {
+        $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach ($decoded as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $qty = max(1, (int) ($row['qty'] ?? 0));
+
+            if ($qty < 1) {
+                continue;
+            }
+
+            $items[] = [
+                'flower' => trim((string) ($row['flower'] ?? '')),
+                'color' => trim((string) ($row['color'] ?? '')),
+                'size' => trim((string) ($row['size'] ?? '')),
+                'qty' => $qty,
+            ];
+        }
+
+        return $items;
     }
 
     public function count(CartService $cart)
