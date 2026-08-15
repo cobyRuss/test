@@ -15,18 +15,17 @@
         .admin-topbar h2 { margin: 0; font-size: 1.2rem; }
         .admin-topbar a { color: #fff; text-decoration: none; font-weight: 600; }
         .admin-body { display: flex; min-height: calc(100vh - 62px); }
-        .admin-nav { width: 210px; background: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.05); padding: 20px 0; flex-shrink: 0; position: sticky; top: 62px; align-self: flex-start; max-height: calc(100vh - 62px); overflow-y: auto; }
-        .admin-nav button { display: block; width: 100%; text-align: left; padding: 12px 24px; background: none; border: none; cursor: pointer; font-size: 0.95rem; color: #5a4a4a; font-weight: 500; border-left: 4px solid transparent; }
-        .admin-nav button:hover, .admin-nav button.active { background: #f9f3f4; color: #d17b88; border-left-color: #d17b88; }
+        .admin-nav { width: 220px; background: #8a9b6e; padding: 18px 14px 30px; flex-shrink: 0; position: sticky; top: 62px; align-self: flex-start; max-height: calc(100vh - 62px); overflow-y: auto; }
+        .admin-nav-title { color: rgba(255,255,255,0.75); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 0 16px 12px; }
+        .admin-nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 6px; background: transparent; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 600; color: #fff; transition: background 0.2s, color 0.2s; }
+        .admin-nav button i { width: 20px; text-align: center; }
+        .admin-nav button:hover { background: rgba(255,255,255,0.18); }
+        .admin-nav button.active { background: #fff; color: #8a9b6e; box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
         .admin-content { flex: 1; padding: 30px; overflow-x: auto; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
         .card { background: #fff; border-radius: 10px; padding: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 22px; }
         .card h3 { color: #8a9b6e; margin: 0 0 16px; }
-        .card.collapsible h3 { cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; user-select: none; margin-bottom: 16px; }
-        .card.collapsible h3::after { content: "\f078"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8rem; color: #8a9b6e; transition: transform 0.25s ease; flex-shrink: 0; }
-        .card.collapsible.collapsed h3::after { transform: rotate(-90deg); }
-        .card.collapsible.collapsed > *:not(h3) { display: none; }
         table.admin-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
         table.admin-table th { background: #f9f3f4; text-align: left; padding: 10px 12px; color: #5a4a4a; }
         table.admin-table td { padding: 10px 12px; border-bottom: 1px solid #f0ebea; }
@@ -87,7 +86,7 @@
         .switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; transition: 0.25s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .switch input:checked + .slider { background: #2e7d32; }
         .switch input:checked + .slider::before { transform: translateX(20px); }
-        @media (max-width: 900px) { .admin-body { flex-direction: column; } .admin-nav { width: 100%; display: flex; overflow-x: auto; padding: 8px 0; position: static; align-self: auto; max-height: none; } .admin-nav button { border-left: none; border-bottom: 3px solid transparent; width: auto; padding: 10px 16px; white-space: nowrap; } .admin-nav button.active { border-bottom-color: #d17b88; } }
+        @media (max-width: 900px) { .admin-body { flex-direction: column; } .admin-nav { width: 100%; display: flex; align-items: center; overflow-x: auto; padding: 10px; gap: 6px; position: static; align-self: auto; max-height: none; } .admin-nav-title { display: none; } .admin-nav button { width: auto; margin-bottom: 0; padding: 10px 16px; white-space: nowrap; } .admin-nav button.active { background: #fff; color: #8a9b6e; } }
     </style>
 </head>
 <body>
@@ -106,6 +105,7 @@
 
     <div class="admin-body">
         <div class="admin-nav">
+            <div class="admin-nav-title">Menu</div>
             <button class="tab-btn {{ $activeTab === 'products' ? 'active' : '' }}" data-tab="products"><i class="fas fa-store"></i> Products</button>
             <button class="tab-btn {{ $activeTab === 'customization' ? 'active' : '' }}" data-tab="customization"><i class="fas fa-magic"></i> Customization</button>
             <button class="tab-btn {{ $activeTab === 'categories' ? 'active' : '' }}" data-tab="categories"><i class="fas fa-tags"></i> Categories</button>
@@ -161,7 +161,7 @@
                     </form>
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Products ({{ $totalProducts }})</h3>
                     <form method="GET" action="{{ route('admin.dashboard') }}" class="filter-bar">
                         <input type="hidden" name="tab" value="products">
@@ -299,7 +299,7 @@
                 </div>
 
                 @foreach ($serviceCategories as $cat)
-                    <div class="card collapsible collapsed">
+                    <div class="card collapsible">
                         <h3>{{ $serviceNames[$cat] }}</h3>
                         <table class="admin-table">
                             <thead><tr><th></th><th>Image</th><th>Caption</th><th>Action</th></tr></thead>
@@ -335,7 +335,7 @@
 
             {{-- ─────────── CUSTOMIZATION ─────────── --}}
             <div class="tab-panel {{ $activeTab === 'customization' ? 'active' : '' }}" id="tab-customization">
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Flowers ({{ $customFlowers->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -413,7 +413,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Flower Variants ({{ $flowerVariantsTotal }})</h3>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">A variant price above ₱0 replaces the flower's per-stem price when selected. Leave at ₱0 to keep the flower's base price.</p>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
@@ -515,7 +515,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Fillers ({{ $fillersTotal }})</h3>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Customers can pick each filler only once (but may pick several different fillers).</p>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
@@ -586,7 +586,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Wrapper Colors ({{ $customColors->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -665,7 +665,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Ribbons ({{ $customRibbons->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -734,7 +734,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Ribbon Variants ({{ $ribbonVariantsTotal }})</h3>
                     <p style="font-size:0.8rem;color:#8a8a8a;margin:-8px 0 14px;">Add a Color (hex or pattern image) or a Size (e.g. 1 inch) to each ribbon. If the size price is ₱0 the color price is used.</p>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data">
@@ -836,7 +836,7 @@
                     @endif
                 </div>
 
-                <div class="card collapsible collapsed">
+                <div class="card collapsible">
                     <h3>Styles ({{ $customStyles->count() }})</h3>
                     <form action="{{ route('admin.dashboard.post') }}" method="POST" enctype="multipart/form-data" class="add-form">
                         @csrf
@@ -981,7 +981,11 @@
                                     <td>{{ $order->full_name }}<br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $order->phone }}</span></td>
                                     <td>₱{{ number_format($order->total_amount, 2) }}</td>
                                     <td>{{ strtoupper($order->payment_method) }}<br>
-                                        <span class="badge {{ $order->payment_status === 'completed' ? 'badge-delivered' : 'badge-pending' }}">{{ str_replace('_', ' ', $order->payment_status) }}</span>
+                                        @php
+                                            $payLabels = ['pending_downpayment' => 'Unpaid', 'partial' => 'Deposit Paid', 'completed' => 'Fully Paid', 'pending_cod' => 'COD'];
+                                            $payBadge = ['pending_downpayment' => 'badge-pending', 'partial' => 'badge-confirmed', 'completed' => 'badge-delivered', 'pending_cod' => 'badge-pending'];
+                                        @endphp
+                                        <span class="badge {{ $payBadge[$order->payment_status] ?? 'badge-pending' }}">{{ $payLabels[$order->payment_status] ?? str_replace('_', ' ', $order->payment_status) }}</span>
                                     </td>
                                     <td><span class="badge badge-{{ $order->order_status }}">{{ ucfirst($order->order_status) }}</span></td>
                                     <td>{{ $order->delivery_date }}<br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $order->municipality }}</span></td>
@@ -1012,7 +1016,7 @@
                                                 @endforeach
                                             </select>
                                         </form>
-                                        @if ($order->payment_method === 'gcash' && $order->payment_status !== 'completed')
+                                        @if ($order->payment_status !== 'completed')
                                             <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
                                                 @csrf
                                                 <input type="hidden" name="action" value="mark_paid">
@@ -1542,45 +1546,25 @@
             sel.addEventListener('change', toggleHex);
             toggleHex();
         });
-
-        document.querySelectorAll('.card.collapsible h3').forEach(h3 => {
-            h3.addEventListener('click', () => {
-                const card = h3.parentElement;
-                const wasCollapsed = card.classList.contains('collapsed');
-                card.closest('.tab-panel').querySelectorAll('.card.collapsible').forEach(other => {
-                    if (other !== card) other.classList.add('collapsed');
-                });
-                card.classList.toggle('collapsed', !wasCollapsed);
-            });
-        });
         }
 
         function saveDashboardState() {
-            const openCardEl = document.querySelector('.card.collapsible:not(.collapsed)');
-            const ref = openCardEl ? {
-                panel: openCardEl.closest('.tab-panel') ? openCardEl.closest('.tab-panel').id : '',
-                index: Array.prototype.indexOf.call(openCardEl.parentElement.querySelectorAll(':scope > .card.collapsible'), openCardEl)
-            } : null;
             sessionStorage.setItem('hs_scroll', String(window.scrollY));
-            sessionStorage.setItem('hs_open_card', ref ? JSON.stringify(ref) : '');
         }
 
         function restoreDashboardState() {
             const savedScroll = sessionStorage.getItem('hs_scroll');
-            if (savedScroll) window.scrollTo(0, parseInt(savedScroll, 10));
-            const refJson = sessionStorage.getItem('hs_open_card');
-            if (refJson) {
-                try {
-                    const ref = JSON.parse(refJson);
-                    const panel = document.getElementById(ref.panel);
-                    if (panel) {
-                        const cards = panel.querySelectorAll(':scope > .card.collapsible');
-                        if (cards[ref.index]) cards[ref.index].classList.remove('collapsed');
-                    }
-                } catch (e) {}
+            if (!savedScroll) return;
+
+            const apply = () => {
+                window.scrollTo(0, parseInt(savedScroll, 10));
+            };
+
+            apply();
+            if (document.readyState !== 'complete') {
+                window.addEventListener('load', apply, { once: true });
             }
             sessionStorage.removeItem('hs_scroll');
-            sessionStorage.removeItem('hs_open_card');
         }
 
         document.addEventListener('submit', saveDashboardState, true);

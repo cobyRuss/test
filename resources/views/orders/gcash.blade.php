@@ -47,9 +47,9 @@
                         <input type="text" name="reference_number" value="{{ old('reference_number') }}" placeholder="e.g. 1234567890" required>
                     </div>
                     <div class="form-group" style="margin-bottom:20px;">
-                        <label>Screenshot of Payment (optional)</label>
-                        <input type="file" name="screenshot" accept="image/*">
-                        <p style="font-size:0.82rem;color:var(--secondary);margin-top:5px;">Attach a screenshot to help us verify faster.</p>
+                        <label>Screenshot of Payment (required)</label>
+                        <input type="file" name="screenshot" accept="image/*" required>
+                        <p style="font-size:0.82rem;color:var(--secondary);margin-top:5px;">Attach a clear screenshot of your GCash transfer so we can verify your 50% down payment.</p>
                     </div>
                     <button type="submit" class="btn" style="width:100%;text-align:center;"><i class="fas fa-check-circle"></i> Submit Payment</button>
                 </form>

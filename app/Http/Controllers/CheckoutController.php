@@ -78,10 +78,10 @@ class CheckoutController extends Controller
                 'customer_id' => $customer->id,
                 'total_amount' => $grandTotal,
                 'delivery_fee' => $deliveryFee,
-                'down_payment' => $method === 'gcash' ? $downPayment : null,
-                'remaining_balance' => $method === 'gcash' ? $remaining : null,
+                'down_payment' => $downPayment,
+                'remaining_balance' => $remaining,
                 'payment_method' => $method,
-                'payment_status' => $method === 'gcash' ? 'pending_downpayment' : 'pending_cod',
+                'payment_status' => 'pending_downpayment',
                 'order_status' => 'pending',
                 'delivery_address' => $data['street'].', '.$data['municipality'].', Abra',
                 'municipality' => $data['municipality'],
@@ -114,10 +114,6 @@ class CheckoutController extends Controller
             'last_order_number' => $orderNumber,
         ]);
 
-        if ($method === 'gcash') {
-            return redirect()->route('orders.gcash', $order->id);
-        }
-
-        return redirect()->route('orders.show', $order->id);
+        return redirect()->route('orders.gcash', $order->id);
     }
 }

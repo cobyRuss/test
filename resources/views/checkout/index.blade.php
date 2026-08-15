@@ -62,14 +62,14 @@
                             <input type="radio" name="payment_method" value="cod" @checked(old('payment_method', 'cod') === 'cod')>
                             <div>
                                 <strong style="color:var(--dark);">Cash on Delivery</strong>
-                                <p style="font-size:0.82rem;color:var(--secondary);">Pay the full amount upon delivery.</p>
+                                <p style="font-size:0.82rem;color:var(--secondary);">Pay 50% down payment via GCash now, remaining balance in cash on delivery.</p>
                             </div>
                         </label>
                         <label style="flex:1;border:2px solid #eee;border-radius:10px;padding:15px;cursor:pointer;display:flex;align-items:center;gap:10px;">
                             <input type="radio" name="payment_method" value="gcash" @checked(old('payment_method') === 'gcash')>
                             <div>
                                 <strong style="color:var(--dark);">GCash</strong>
-                                <p style="font-size:0.82rem;color:var(--secondary);">Pay 50% down payment now.</p>
+                                <p style="font-size:0.82rem;color:var(--secondary);">Pay 50% down payment via GCash now, remaining balance on delivery.</p>
                             </div>
                         </label>
                     </div>

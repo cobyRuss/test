@@ -22,8 +22,11 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
 - MySQL: `"C:/xampp/mysql/bin/mysql.exe"` (client), `mysqldump.exe` alongside it.
 - DB: `happystem_db`, host `127.0.0.1`, user `root`, no password.
 - `SESSION_DRIVER=database`. `.env` has `DB_DATABASE=happystem_db`.
+- App timezone: **Asia/Manila** (`config/app.php`), not UTC — PHP/local time is used everywhere.
 - App runs via `php artisan serve --host=127.0.0.1 --port=8000` (or XAMPP Apache at `/test/public`).
-- Admin login: `/admin/login`, default `admin` / `admin123`.
+- Admin login: `/admin/login`, default `admin` / `admin123`. If the admin pages 500,
+  MySQL is probably not running — start it (XAMPP Control → MySQL, or
+  `C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:/xampp/mysql/bin/my.ini`).
 - Read `PROJECT_NOTES.md` for the full handoff context and known issues.
 
 ## Always do first
@@ -69,3 +72,7 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   swatches; `image_url` wins over `hex_color`.
 - Ribbon selection is single-choice + toggleable (click again to remove).
 - Ribbon price: size variant price > 0 wins, else color variant price, else 0.
+- Payment: **both COD and GCash require a 50% GCash down payment** before confirmation.
+  `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Deposit
+  Paid) → `completed` (Fully Paid on delivery). GCash screenshot is required.
+- Admin dashboard sidebar: solid `#8a9b6e`, sticky (never scrolls with content).

@@ -879,7 +879,7 @@ class DashboardController extends Controller
             ->orderByDesc('total_sales')
             ->get();
 
-        $trend = [];
+        $trend = collect();
         if (in_array($reportPeriod, ['monthly', 'annual'])) {
             $trendFmt = $reportPeriod === 'annual' ? '%Y-%m' : '%Y-%m-%d';
 

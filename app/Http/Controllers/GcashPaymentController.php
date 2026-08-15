@@ -28,6 +28,7 @@ class GcashPaymentController extends Controller
 
         $data = $request->validate([
             'reference_number' => ['required'],
+            'screenshot' => ['required', 'image', 'max:5120'],
         ]);
 
         $referenceNumber = trim($data['reference_number']);

@@ -102,6 +102,10 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 
 ## Admin dashboard UX (2026-08-13)
 
+> **Update 2026-08-15:** the collapsible/accordion card behavior described below was
+> removed — cards are always expanded now. Everything else (item counts, pagination
+> params, page-state restore) still applies.
+
 - **Collapsible accordion cards.** The Customization tab's cards (Flowers, Flower
   Variants, Fillers, Wrapper Colors, Ribbons, Ribbon Variants, Styles) are now
   click-to-expand/collapse dropdowns. Only ONE card can be open at a time (accordion),
@@ -129,6 +133,49 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
     (`hs_scroll`, `hs_open_card`); `restoreDashboardState()` re-applies them after the
     reload. Hooked on a capture-phase `submit` listener + explicit calls before the
     inline-edit hidden forms' `.submit()` and the order-status `onchange` submit.
+
+## Latest work (2026-08-15)
+
+### Payment flow rework: 50% GCash down payment for BOTH methods
+
+- COD is no longer "pay everything on delivery" — **both COD and GCash orders now
+  require a 50% down payment via GCash** before the order is confirmed.
+- Checkout always redirects to `/orders/{id}/gcash` (no direct `orders.show` after order).
+- Every order stores `down_payment` + `remaining_balance` (was GCash-only before).
+- GCash screenshot is now **required** (server-side validation `screenshot => required,
+  image, max:5120` + required file input in `orders/gcash.blade.php`).
+- Payment status flow: `pending_downpayment` (Unpaid) → `partial` (Deposit Paid, after
+  admin verifies the GCash payment) → `completed` (Fully Paid, admin marks paid on
+  delivery). `pending_cod` is legacy and only still handled for display.
+- Order show page (`orders/show.blade.php`): friendly status labels
+  (Unpaid / Deposit Paid / Fully Paid / COD), a payment summary box showing the
+  deposit + balance-due-on-delivery, and the "Pay Down Payment"/"Submit GCash
+  Reference" buttons now show for COD orders too.
+- Admin orders table: payment badges for all statuses (`Unpaid`, `Deposit Paid`,
+  `Fully Paid`, `COD`) and the "Mark paid" button now shows for every non-completed
+  order (not just GCash).
+
+### Admin dashboard nav (styling)
+
+- Sidebar nav is now a **single solid sage green (`#8a9b6e`)** on every menu — it was
+  briefly a pink→green gradient (uncommitted) which looked like it changed color per
+  menu as it scrolled. The sidebar is also **sticky again** (`position: sticky;
+  top: 62px`) so it does not scroll away with the content.
+- The collapsible/accordion card behavior introduced 2026-08-13 was removed — cards
+  are always expanded.
+
+### Reports fix
+
+- **Daily and Weekly reports were 500-ing.** Cause: `loadReports()` set `$trend = []`
+  (plain array) for daily/weekly, but the blade called `$trend->isNotEmpty()` (a
+  Collection method) → `Call to a member function isNotEmpty() on array`. Fixed by
+  initializing `$trend = collect();` (`DashboardController.php`).
+
+### Timezone
+
+- App timezone changed **UTC → Asia/Manila** (`config/app.php`). Report "Generated:"
+  timestamps (and all app times) now show Philippine local time instead of being 8
+  hours behind. `created_at` values already stored in the DB are still UTC-based.
 
 ## Known issues / gotchas
 

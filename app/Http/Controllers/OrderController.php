@@ -33,7 +33,14 @@ class OrderController extends Controller
             'cancelled' => ['Cancelled', '❌ This order has been cancelled'],
         ];
 
-        return view('orders.show', compact('order', 'items', 'gcashPayment', 'statusLabels'));
+        $paymentLabels = [
+            'pending_downpayment' => 'Unpaid',
+            'partial' => 'Deposit Paid',
+            'completed' => 'Fully Paid',
+            'pending_cod' => 'COD',
+        ];
+
+        return view('orders.show', compact('order', 'items', 'gcashPayment', 'statusLabels', 'paymentLabels'));
     }
 
     public function cancelForm(Request $request, int $id)
