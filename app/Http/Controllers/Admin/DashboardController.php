@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use App\Models\CustomizationOption;
 use App\Models\CustomizationOptionVariant;
+use App\Models\GcashPayment;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ServicePhoto;
@@ -59,13 +62,17 @@ class DashboardController extends Controller
                     ]);
                     $product = Product::query()->create([
                         'name' => $request->input('name'),
-                        'description' => $request->input('description'),
+                        'description' => $request->input('description') ?? '',
                         'price' => $request->input('price'),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
                         'is_active' => $request->boolean('is_active'),
                     ]);
                     $product->categories()->sync(array_map('intval', (array) $request->input('categories', [])));
-                    $product->flowers()->sync(array_map('intval', (array) $request->input('flowers', [])));
+                    $this->syncProductVariants($product, $request);
+
+                    if (! $request->filled('description')) {
+                        $product->update(['description' => $this->flowerBreakdown($product)]);
+                    }
                     $message = 'Product added successfully!';
                     break;
 
@@ -77,9 +84,12 @@ class DashboardController extends Controller
                             'name' => $request->input('name'),
                             'description' => $request->input('description'),
                             'price' => $request->input('price'),
-                            'image_url' => $request->input('image_url'),
                             'is_active' => $request->boolean('is_active'),
                         ];
+
+                        if ($request->filled('image_url')) {
+                            $data['image_url'] = $request->input('image_url');
+                        }
 
                         $imageUrl = $this->storeUploadedImage($request->file('image'));
 
@@ -89,7 +99,7 @@ class DashboardController extends Controller
 
                         $product->update($data);
                         $product->categories()->sync(array_map('intval', (array) $request->input('categories', [])));
-                        $product->flowers()->sync(array_map('intval', (array) $request->input('flowers', [])));
+                        $this->syncProductVariants($product, $request);
                         $message = 'Product updated successfully!';
                     }
                     break;
@@ -456,9 +466,9 @@ class DashboardController extends Controller
                         'verified_at' => now(),
                     ]);
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
-                        'payment_status' => 'partial',
+                        'payment_status' => 'completed',
                     ]);
-                    $message = 'GCash payment verified!';
+                    $message = 'GCash payment verified — order marked as fully paid!';
                     break;
 
                 case 'approve_order':
@@ -542,7 +552,7 @@ class DashboardController extends Controller
         $totalPages = max(1, (int) ceil($totalProducts / $productsPerPage));
 
         $products = (clone $query)
-            ->with(['categories', 'flowers'])
+            ->with(['categories', 'flowerVariants'])
             ->orderByDesc('id')
             ->offset(($page - 1) * $productsPerPage)
             ->limit($productsPerPage)
@@ -627,6 +637,45 @@ class DashboardController extends Controller
         $file->move(public_path('images'), $filename);
 
         return $filename;
+    }
+
+    private function syncProductVariants(Product $product, Request $request): void
+    {
+        $flowerVariantIds = CustomizationOptionVariant::query()
+            ->whereHas('option', fn ($q) => $q->where('type', 'flower'))
+            ->pluck('id')
+            ->flip()
+            ->all();
+
+        $checked = array_filter((array) $request->input('variants', []));
+        $quantities = (array) $request->input('variant_qty', []);
+        $sync = [];
+
+        foreach ($checked as $variantId => $on) {
+            $variantId = (int) $variantId;
+
+            if (! $on || ! isset($flowerVariantIds[$variantId])) {
+                continue;
+            }
+
+            $raw = $quantities[$variantId] ?? '';
+            $quantity = $raw === '' || $raw === null ? mt_rand(5, 30) : max(1, (int) $raw);
+
+            $sync[$variantId] = ['quantity' => $quantity];
+        }
+
+        $product->flowerVariants()->sync($sync);
+    }
+
+    private function flowerBreakdown(Product $product): string
+    {
+        $parts = $product->flowerVariants->map(function ($variant) {
+            $flower = $variant->option->display_name ?? 'Flower';
+
+            return $variant->pivot->quantity.'x '.$flower.' ('.$variant->display_name.')';
+        });
+
+        return $parts->isEmpty() ? '' : 'Includes: '.$parts->implode(', ').'.';
     }
 
     private function loadCustomizationOptions(Request $request): array
@@ -807,6 +856,14 @@ class DashboardController extends Controller
                 DB::table('order_items')->selectRaw('COUNT(*)')->whereColumn('order_id', 'o.id'),
                 'item_count'
             )
+            ->selectSub(
+                DB::table('gcash_payments')
+                    ->select('screenshot_path')
+                    ->whereColumn('order_id', 'o.id')
+                    ->orderByDesc('id')
+                    ->limit(1),
+                'gcash_screenshot'
+            )
             ->orderByDesc('o.created_at')
             ->offset(($ordersPage - 1) * $ordersPerPage)
             ->limit($ordersPerPage)
@@ -926,5 +983,22 @@ class DashboardController extends Controller
             'muniBreakdown',
             'trend'
         );
+    }
+
+    public function orderDetails(int $id)
+    {
+        $order = Order::query()->with('customer')->findOrFail($id);
+
+        $items = OrderItem::query()->where('order_id', $order->id)->get();
+        $gcashPayment = GcashPayment::query()->where('order_id', $order->id)->orderByDesc('id')->first();
+
+        $paymentLabels = [
+            'pending_downpayment' => 'Unpaid',
+            'partial' => 'Payment Submitted',
+            'completed' => 'Paid',
+            'pending_cod' => 'COD',
+        ];
+
+        return view('admin.order_details', compact('order', 'items', 'gcashPayment', 'paymentLabels'));
     }
 }

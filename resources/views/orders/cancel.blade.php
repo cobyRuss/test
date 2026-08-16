@@ -44,7 +44,7 @@
                 <div style="background:var(--light);border-radius:8px;padding:15px;margin-bottom:20px;font-size:0.9rem;color:var(--dark);">
                     <ul style="margin-left:18px;">
                         <li>Cancellation is only allowed while the order is still pending confirmation.</li>
-                        <li>GCash down payments are refunded within 3–5 business days.</li>
+                        <li>GCash payments are refunded within 3–5 business days.</li>
                         <li>Once an order is confirmed or prepared, it can no longer be cancelled.</li>
                     </ul>
                 </div>

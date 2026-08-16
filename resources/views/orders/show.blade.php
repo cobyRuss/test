@@ -52,16 +52,20 @@
                                 </p>
                             @elseif ($order->payment_status === 'completed')
                                 <p style="display:flex;justify-content:space-between;font-weight:700;color:var(--secondary);">
-                                    <span>Payment</span><span>Fully Paid</span>
+                                    <span>Payment</span><span>Paid (GCash)</span>
+                                </p>
+                            @elseif ($order->payment_status === 'partial')
+                                <p style="display:flex;justify-content:space-between;">
+                                    <span>Payment Submitted (GCash)</span>
+                                    <span style="color:var(--secondary);font-weight:600;">₱{{ number_format($order->down_payment, 2) }}</span>
+                                </p>
+                                <p style="display:flex;justify-content:space-between;margin-top:6px;font-weight:600;color:var(--secondary);">
+                                    <span>Status</span><span>⏳ Awaiting verification</span>
                                 </p>
                             @else
                                 <p style="display:flex;justify-content:space-between;">
-                                    <span>{{ $order->payment_status === 'partial' ? 'Deposit Paid (GCash)' : 'Deposit Due (GCash, 50%)' }}</span>
+                                    <span>Payment Due (GCash, 100%)</span>
                                     <span style="color:var(--secondary);font-weight:600;">₱{{ number_format($order->down_payment, 2) }}</span>
-                                </p>
-                                <p style="display:flex;justify-content:space-between;margin-top:6px;">
-                                    <span>{{ $order->payment_status === 'partial' ? 'Remaining Balance (on delivery)' : 'Balance Due (on delivery)' }}</span>
-                                    <span style="color:var(--secondary);font-weight:600;">₱{{ number_format($order->remaining_balance, 2) }}</span>
                                 </p>
                             @endif
                         </div>
@@ -69,14 +73,48 @@
                 </div>
 
                 <div style="flex:1;min-width:280px;background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);">
-                    <h3 style="color:var(--secondary);margin-bottom:15px;">Delivery &amp; Payment</h3>
-                    <p style="font-size:0.92rem;margin-bottom:8px;"><strong>Address:</strong> {{ $order->delivery_address }}</p>
-                    <p style="font-size:0.92rem;margin-bottom:8px;"><strong>Delivery Date:</strong> {{ $order->delivery_date->format('F j, Y') }}</p>
-                    @if ($order->special_instructions)
-                        <p style="font-size:0.92rem;margin-bottom:8px;"><strong>Instructions:</strong> {{ $order->special_instructions }}</p>
+                    <h3 style="color:var(--secondary);margin-bottom:15px;">Sender</h3>
+                    <p style="font-size:0.92rem;margin-bottom:6px;">
+                        <strong>{{ $order->customer->full_name }}</strong>
+                        @if ($order->sender_anonymous)
+                            <span class="badge" style="background:#d17b88;color:#fff;font-size:0.7rem;padding:2px 8px;border-radius:10px;margin-left:6px;">Anonymous</span>
+                        @endif
+                    </p>
+                    <p style="font-size:0.92rem;margin-bottom:6px;">{{ $order->customer->email }}</p>
+                    @if ($order->sender_phone)
+                        <p style="font-size:0.92rem;margin-bottom:6px;">{{ $order->sender_phone }}</p>
                     @endif
+
+                    <hr style="border:none;border-top:1px solid #f0f0f0;margin:15px 0;">
+
+                    <h3 style="color:var(--secondary);margin-bottom:15px;">Recipient &amp; Delivery</h3>
+                    <p style="font-size:0.92rem;margin-bottom:6px;"><strong>{{ $order->recipient_name ?? $order->customer->full_name }}</strong></p>
+                    @if ($order->recipient_phone)
+                        <p style="font-size:0.92rem;margin-bottom:6px;">{{ $order->recipient_phone }}</p>
+                    @endif
+                    <p style="font-size:0.92rem;margin-bottom:6px;"><strong>Address:</strong> {{ $order->delivery_address }}</p>
+                    <p style="font-size:0.92rem;margin-bottom:6px;"><strong>Delivery Date:</strong> {{ $order->delivery_date->format('F j, Y') }}</p>
+
+                    @if ($order->message_for_recipient)
+                        <div style="margin-top:14px;background:var(--light);border-radius:10px;padding:12px 14px;">
+                            <p style="font-size:0.82rem;font-weight:700;color:var(--accent);margin-bottom:4px;"><i class="fas fa-envelope"></i> Message for recipient</p>
+                            <p style="font-size:0.9rem;color:var(--dark);white-space:pre-wrap;">{{ $order->message_for_recipient }}</p>
+                        </div>
+                    @endif
+
+                    @if ($order->special_instructions)
+                        <div style="margin-top:14px;background:var(--light);border-radius:10px;padding:12px 14px;">
+                            <p style="font-size:0.82rem;font-weight:700;color:var(--accent);margin-bottom:4px;"><i class="fas fa-clipboard-list"></i> Special instructions</p>
+                            <p style="font-size:0.9rem;color:var(--dark);white-space:pre-wrap;">{{ $order->special_instructions }}</p>
+                        </div>
+                    @endif
+
+                    <hr style="border:none;border-top:1px solid #f0f0f0;margin:15px 0;">
+
+                    <h3 style="color:var(--secondary);margin-bottom:15px;">Payment</h3>
                     <p style="font-size:0.92rem;margin-bottom:8px;"><strong>Payment:</strong> {{ $order->payment_method === 'cod' ? 'Cash on Delivery' : strtoupper($order->payment_method) }}</p>
-                    <p style="font-size:0.92rem;"><strong>Payment Status:</strong>
+                    <p style="font-size:0.92rem;"><strong>Payment Status:</strong></p>
+                    <p style="font-size:0.92rem;">
                         <span style="color:{{ $order->payment_status === 'completed' ? 'var(--secondary)' : 'var(--accent)' }};">
                             {{ $paymentLabels[$order->payment_status] ?? str_replace('_', ' ', strtoupper($order->payment_status)) }}
                         </span>
@@ -84,7 +122,7 @@
 
                     @if (in_array($order->payment_method, ['gcash', 'cod']) && $order->payment_status === 'pending_downpayment')
                         <a href="{{ route('orders.gcash', $order->id) }}" class="btn" style="width:100%;text-align:center;margin-top:18px;">
-                            <i class="fas fa-money-bill-wave"></i> Pay Down Payment
+                            <i class="fas fa-money-bill-wave"></i> Pay via GCash
                         </a>
                     @endif
 

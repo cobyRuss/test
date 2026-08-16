@@ -9,7 +9,7 @@ plain-PHP site (still at `C:\xampp\htdocs\happystem`, v1). This repo is the
 current Laravel app ("main" branch).
 
 Two customer-facing experiences:
-- **Shop**: browse products, add to cart, checkout (COD / GCash with down payment + verification).
+- **Shop**: browse products, add to cart, checkout (GCash, 100% paid upfront with screenshot verification).
 - **Customize**: build a custom bouquet — pick flowers (+ size/color variants, **per-color
   quantities**), fillers, wrapper color, **ribbon**, and arrangement style. Custom design
   is stored as a structured `items` array in the cart session (`custom_arrangement`) plus a
@@ -142,6 +142,92 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
     Products tab — so after a save from Flower Variants the wrong card was reopened).
     Now scroll + tab + open card all persist after a save (verified in Edge via Playwright).
 
+## Latest work
+
+### Admin order details modal (2026-08-16)
+
+- **Admin stays in the admin side now.** Clicking an order number in the admin Orders tab
+  opens an **`#orderDetailsModal`** on the dashboard instead of leaving for the customer-side
+  `/orders/{id}` page. It fetches `GET /admin/orders/{id}/details`
+  (`DashboardController::orderDetails`, route `admin.orders.details`, under `auth:admin`)
+  which returns the partial `resources/views/admin/order_details.blade.php` and injects it
+  into the modal (`openOrderDetails()`).
+- The modal shows: items + custom-arrangement breakdown, totals, payment (method/status,
+  GCash ref + screenshot thumbnail that opens the existing `#gcashLightbox`), sender
+  (name/email/phone + Anonymous badge), recipient & delivery, message for recipient, and
+  special instructions. Uses the LATEST gcash_payments row (`orderByDesc('id')`) to match
+  the dashboard's screenshot thumbnail logic.
+- The customer-side `orders.show` page is still used by customers (their order details +
+  pay/cancel actions); admins no longer need it.
+
+### Checkout redesign: sender/recipient info + messages (2026-08-16)
+
+- **Registration simplified** (2026-08-16): register now collects only first name / last
+  name / email / password / confirm password. New migration
+  `2026_08_16_000001_add_first_last_name_to_customers_table.php` added `customers.first_name`
+  / `last_name` (backfilled from `full_name` for existing rows) and made `phone`/`address`
+  nullable. `AuthController::register` now saves `first_name` + `last_name` and derives
+  `full_name = "First Last"`; phone/municipality/address are left null and filled at
+  checkout. Register page (`resources/views/auth/register.blade.php`) is a FlowerStore-style
+  split-screen (brand panel + form card) using HappyStem's logo (`images/qqq.png`) and colors.
+- **Checkout is now FlowerStore-style** (imitated from flowerstore.ph/home/information):
+  - **Sender Information**: email (read-only autofill), first/last name (autofilled inputs),
+    and phone with a 🇵🇭 +63 prefix — a 10-digit number (capped at 10, digits-only, JS
+    strips `+63…`/`09…` prefixes on paste). Stored as local format `0`+10 digits
+    (e.g. `09171234567`).
+  - **Recipient toggle** (two side-by-side buttons): "I'll receive the order" (default,
+    recipient = sender) vs "Someone else will receive it" (reveals recipient first/last
+    name + phone, also +63/10-digit). Address (municipality select, barangay, street) is
+    always shown since a delivery address is always needed; `delivery_date` stays.
+  - **Message & Instructions**: "Optional: Message for recipient" (max 400 chars with a
+    live `0/400` counter; placeholder reminds the sender to say who they are) and "Optional:
+    Special instructions for the rider/merchant" with the disclaimer "we cannot promise any
+    exact hour for your delivery" and an example placeholder.
+  - **Sender Anonymous** checkbox ("Yes, I want to make the sender anonymous.").
+  - Button is now **"Go to Payment"** (single-page checkout still redirects to
+    `/orders/{id}/gcash` after placing).
+  - `CheckoutController::store` validates `sender_phone`/`recipient_phone` with
+    `/^9\d{9}$/`, `recipient_mode in:me,someone_else`, and `message_for_recipient max:400`.
+- **New `orders` columns** (migration `2026_08_16_000002_add_checkout_details_to_orders_table.php`):
+  `sender_phone`, `recipient_name`, `recipient_phone`, `recipient_barangay`,
+  `recipient_street`, `message_for_recipient`, `sender_anonymous`. `delivery_address` is
+  built as `street, barangay, municipality, Abra`; `special_instructions` is reused for the
+  rider/merchant instructions.
+- **Order details (`orders/show.blade.php`) now show Sender, Recipient & Delivery, Message
+  for recipient, Special instructions, and an Anonymous badge** — visible to the customer
+  AND the admin. Also fixed a pre-existing bug: admins got **404** on `/orders/{id}` because
+  `OrderController::findOrder()` scoped orders to the web guard's `customer_id`; it now skips
+  the customer scoping when `Auth::guard('admin')->check()`.
+- Verified end-to-end via curl for both recipient modes (someone_else with message/anonymous
+  flag, and me with no message), order details render for customer and admin, test data
+  cleaned up. `database.sql` regenerated.
+
+### Payment flow: GCash only, 100% upfront (2026-08-16)
+
+- **COD removed entirely.** Checkout now has only the GCash option; `CheckoutController`
+  validates `payment_method => in:gcash` and stores `down_payment` = full total,
+  `remaining_balance` = 0. (The DB enums `payment_method('gcash','cod')` and
+  `payment_status('pending_downpayment','partial','completed','pending_cod')` are UNCHANGED —
+  `cod`/`pending_cod`/`partial` values still exist for legacy orders.)
+- **GCash details are now configurable:** new `config/happystem.php` (`gcash_number`,
+  `gcash_account_name`, overridable via `GCASH_NUMBER` / `GCASH_ACCOUNT_NAME` in `.env`).
+  Shown on the **checkout page** (so customers know where to pay before ordering) and the
+  GCash payment page. Current values: `09353505610` / `Ross Terence L. Marzo`.
+- **Payment status flow:** `pending_downpayment` (Unpaid) → `partial` (Payment Submitted,
+  awaiting verification) → `completed` (Paid). Admin **Verify** (`verify_gcash`) now sets
+  `payment_status = 'completed'` directly (was `'partial'`); `GcashPaymentController::store`
+  records `payment_type = 'full_payment'` (was `'down_payment'`).
+- **Labels updated everywhere:** admin orders badges and customer order page now show
+  Unpaid / Payment Submitted / Paid (no more "Deposit Paid / Fully Paid / 50%"). Cancel
+  pages say "GCash payments are refunded" instead of "down payments".
+- **Admin views the GCash screenshot inline** — no more leaving for the customer-side order
+  page. Added `#gcashLightbox` (read-only modal + "Open in new tab") to the admin dashboard;
+  the Payments tab shows a 48px thumbnail per pending payment and the Orders tab Payment
+  column shows a 36px thumbnail when a screenshot exists (`loadOrders()` gained a
+  `gcash_screenshot` subquery). Click a thumbnail → `openGcashLightbox()` stays on admin.
+- Verified end-to-end via curl (customer login → cart → checkout → place order →
+  submit screenshot → admin verify), test order cleaned up afterward.
+
 ## Latest work (2026-08-15)
 
 ### Labels + admin sidebar tweaks
@@ -222,6 +308,9 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 
 ### Payment flow rework: 50% GCash down payment for BOTH methods
 
+> **Superseded 2026-08-16** — see "Payment flow: GCash only, 100% upfront" under Latest
+> work. COD is gone and payments are 100% upfront. History kept for reference.
+
 - COD is no longer "pay everything on delivery" — **both COD and GCash orders now
   require a 50% down payment via GCash** before the order is confirmed.
 - Checkout always redirects to `/orders/{id}/gcash` (no direct `orders.show` after order).
@@ -296,8 +385,17 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 - **Session-based scroll/modal restore uses sessionStorage** — it only survives one
   reload, so a browser hard-refresh goes back to the dashboard defaults (no modal open).
   That's intentional.
-- **419 on login**: session/cookie staleness. Hard-refresh or clear cookies if it recurs.
-  SESSION_LIFETIME=120 in `.env`.
+- **419 "Page Expired"** happens when a stale admin tab submits after the session was
+  regenerated — logging in again (admin **or** customer) calls `session()->regenerate()`,
+  which mints a new CSRF token and invalidates the tokens in every already-open tab. Common
+  in dev because the same browser is used for the customer shop and the admin panel. **Fixed
+  2026-08-16:** `bootstrap/app.php` has a `TokenMismatchException` render handler, but it was
+  dead code — Laravel converts that exception to `HttpException(419)` in `prepareException()`
+  *before* render callbacks run, so a `TokenMismatchException` type-hint never matched. The
+  handler now type-hints `HttpException`, checks `getStatusCode() === 419`, and redirects
+  back with `session('error')` = "Your session expired — please try again." (dashboard already
+  renders `session('error')`). The reloaded page carries a fresh token, so the action works on
+  the second click. SESSION_LIFETIME=120 in `.env` (idle >2h also triggers it).
 - **v2 DB lost filler photos/prices** (fillers are ₱0 with no image). Decided to keep as-is;
   can restore from `main`'s old dump if needed. Image files are still on disk.
 - There were **5 orphan images** in `public/images/` (`flower_1786528xxx_*.jpg`) not
@@ -314,3 +412,47 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   The `name` column is a slug derived from `display_name` — treat it as internal, not user-facing.
   Same auto-slug rule applies to colors, ribbons, styles, and fillers on add/edit.
 - Ribbons: price = size variant price if >0, else color variant price, else 0.
+
+## Latest work (2026-08-16): products use flower VARIANTS + pcs, availability switch
+
+- **"Flowers used" on Add/Edit Product now picks flower VARIANTS (color/size) with a pcs
+  number, not bare flowers.** Pivot is now `product_flower_variants(product_id, variant_id,
+  quantity)` (migration `2026_08_16_000003_create_product_flower_variants_table.php`,
+  in `database.sql`). Migration backfilled each old `flower_product` link → first active
+  variant of that flower (else first variant) with a random qty 5–30, appended an
+  `Includes: Nx Flower (Variant), …` line to existing product descriptions, then dropped
+  `flower_product`. `down()` recreates `flower_product` from distinct parent flowers.
+- **Product model:** `flowers()` replaced by `flowerVariants()` (`belongsToMany` via the new
+  pivot, `withPivot('quantity')`). `Product::is_available` = `is_active` AND every linked
+  variant is active AND its parent flower option is active. `CustomizationOption::products()`
+  (old `flower_product` usage, unused in the codebase) removed.
+- **Controllers updated** (`HomeController`, `ProductController`, `CartController`):
+  `with('flowers')` → `with('flowerVariants')`; both `categoryAvailability()` helpers now use
+  `whereDoesntHave('flowerVariants', …)` checking variant `is_active` OR parent option
+  `is_active`.
+- **Admin dashboard (`DashboardController` + `dashboard.blade.php`):**
+  - Add/Edit Product modals: the old `flowers[]` multi-select is now a **grouped variant
+    picker** (flower → its variants, each with a checkbox + pcs number input; pcs inputs are
+    disabled when unchecked). Only variants whose parent option is `type = 'flower'` are shown
+    and (controller-side) accepted — a non-flower variant is silently ignored.
+  - **Availability is a toggle switch** (reused `.switch`/`.slider`, checkbox `is_active`) in
+    both modals — replaces the Yes/No `<select>`.
+  - **Auto description:** on Add, if description is left blank the controller generates
+    `Includes: Nx Flower (Variant), …` from the submitted variants (blank pcs → random 5–30,
+    e.g. "Includes: 18x Gerbera (Yellow), 12x Gerbera (Red)."). Random numbers are the
+    intended placeholder — the user will write real descriptions later.
+  - `syncProductVariants()` in the controller syncs `variants[id]=1` + `variant_qty[id]`.
+  - Edit button now carries `data-variants` JSON (`{variant_id: qty}`) and the edit JS
+    restores checked variants + qty + the switch state.
+  - Hardened `edit_product` so a blank `image_url`/no new upload **keeps the existing image**
+    (previously an empty input hit NOT NULL on `products.image_url` → 500).
+- **DB gotcha:** `products.id` is plain `int`, but `customization_option_variants.id` is
+  `bigint unsigned` — the pivot's FKs must each match their target column type, otherwise
+  MySQL errno 150 (that's why the migration's `product_id` is `integer`, not `unsignedBigInteger`).
+- Verified end-to-end against the XAMPP Apache server (port 8000): add product with 2 variants
+  (blank qty → random, explicit qty kept) → auto description; edit → uncheck one variant, change
+  qty, toggle active off → shop hides it, "Pastel Tulip Elegance" (linked to the *inactive*
+  Tulips White variant) correctly renders "Not available at the moment"; test data deleted.
+- **Testing note:** curl needs the real session cookie — it's named **`happystem-session`**
+  (not `laravel_session`), so grep the cookie jar for that name or the dashboard fetches return
+  the login page.

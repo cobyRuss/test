@@ -15,7 +15,7 @@ class ProductController extends Controller
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query()->with('flowers');
+        $query = Product::query()->with('flowerVariants');
 
         if ($category !== 'all') {
             $query->whereHas('categories', function ($q) use ($category) {
@@ -47,12 +47,12 @@ class ProductController extends Controller
 
     public function show(Request $request, int $id)
     {
-        $product = Product::query()->with(['categories', 'flowers'])->findOrFail($id);
+        $product = Product::query()->with(['categories', 'flowerVariants'])->findOrFail($id);
 
         $categoryIds = $product->categories->pluck('id');
 
         $related = Product::query()
-            ->with('flowers')
+            ->with('flowerVariants')
             ->whereHas('categories', function ($q) use ($categoryIds) {
                 $q->whereIn('product_categories.id', $categoryIds);
             })
@@ -72,7 +72,10 @@ class ProductController extends Controller
             $total = $category->products()->count();
             $available = $category->products()
                 ->where('products.is_active', true)
-                ->whereDoesntHave('flowers', fn ($q) => $q->where('customization_options.is_active', false))
+                ->whereDoesntHave('flowerVariants', function ($q) {
+                    $q->where('customization_option_variants.is_active', false)
+                        ->orWhereHas('option', fn ($o) => $o->where('customization_options.is_active', false));
+                })
                 ->count();
 
             $result[$category->slug] = ['total' => $total, 'available' => $available];

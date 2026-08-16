@@ -51,7 +51,7 @@ class GcashPaymentController extends Controller
             'order_id' => $order->id,
             'reference_number' => $referenceNumber,
             'amount' => $order->down_payment,
-            'payment_type' => 'down_payment',
+            'payment_type' => 'full_payment',
             'screenshot_path' => $screenshot,
             'verified' => false,
         ]);

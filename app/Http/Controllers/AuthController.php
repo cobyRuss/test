@@ -57,33 +57,26 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $municipalities = array_keys(config('deliveryfees'));
-
         $data = $request->validate([
-            'full_name' => ['required'],
+            'first_name' => ['required'],
+            'last_name' => ['required'],
             'email' => ['required', 'email', 'unique:customers,email'],
-            'phone' => ['required'],
-            'municipality' => ['required', 'in:'.implode(',', $municipalities)],
-            'street' => ['required'],
             'password' => ['required', 'min:6'],
             'confirm_password' => ['required', 'same:password'],
         ], [
-            'full_name.required' => 'Full name is required',
+            'first_name.required' => 'First name is required',
+            'last_name.required' => 'Last name is required',
             'email.required' => 'Valid email is required',
             'email.unique' => 'Email already registered',
-            'phone.required' => 'Phone number is required',
-            'municipality.in' => 'Please select a valid municipality',
-            'street.required' => 'Barangay and street address is required',
             'password.min' => 'Password must be at least 6 characters',
             'confirm_password.same' => 'Passwords do not match',
         ]);
 
         $customer = Customer::query()->create([
-            'full_name' => $data['full_name'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'full_name' => trim($data['first_name'].' '.$data['last_name']),
             'email' => $data['email'],
-            'phone' => $data['phone'],
-            'municipality' => $data['municipality'],
-            'address' => $data['street'].', '.$data['municipality'].', Abra',
             'password_hash' => bcrypt($data['password']),
         ]);
 

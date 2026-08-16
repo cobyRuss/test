@@ -13,20 +13,20 @@
             @if ($success)
                 <div class="alert alert-success">{{ $success }}</div>
                 <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);text-align:center;">
-                    <p style="color:var(--dark);margin-bottom:15px;">Your down payment of <strong style="color:var(--accent);">₱{{ number_format($order->down_payment, 2) }}</strong> will be verified by our team within 24 hours.</p>
+                    <p style="color:var(--dark);margin-bottom:15px;">Your payment of <strong style="color:var(--accent);">₱{{ number_format($order->down_payment, 2) }}</strong> will be verified by our team within 24 hours.</p>
                     <a href="{{ route('orders.show', $order->id) }}" class="btn"><i class="fas fa-eye"></i> View Order</a>
                 </div>
             @else
                 <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);margin-bottom:20px;">
                     <h3 style="color:var(--secondary);margin-bottom:10px;">GCash Details</h3>
                     <p style="font-size:0.95rem;color:var(--dark);">
-                        Send your <strong>50% down payment</strong> of
+                        Send your <strong>full payment</strong> of
                         <strong style="color:var(--accent);">₱{{ number_format($order->down_payment, 2) }}</strong>
                         to the GCash number below, then fill in your payment details.
                     </p>
                     <div style="background:var(--light);border-radius:8px;padding:15px;margin-top:15px;">
-                        <p><strong>GCash Number:</strong> <span style="color:var(--accent);font-weight:700;">0917-123-4567</span></p>
-                        <p><strong>Account Name:</strong> HappyStem</p>
+                        <p><strong>GCash Number:</strong> <span style="color:var(--accent);font-weight:700;">{{ config('happystem.gcash_number') }}</span></p>
+                        <p><strong>Account Name:</strong> {{ config('happystem.gcash_account_name') }}</p>
                     </div>
                 </div>
 
@@ -49,7 +49,7 @@
                     <div class="form-group" style="margin-bottom:20px;">
                         <label>Screenshot of Payment (required)</label>
                         <input type="file" name="screenshot" accept="image/*" required>
-                        <p style="font-size:0.82rem;color:var(--secondary);margin-top:5px;">Attach a clear screenshot of your GCash transfer so we can verify your 50% down payment.</p>
+                        <p style="font-size:0.82rem;color:var(--secondary);margin-top:5px;">Attach a clear screenshot of your GCash transfer so we can verify your payment.</p>
                     </div>
                     <button type="submit" class="btn" style="width:100%;text-align:center;"><i class="fas fa-check-circle"></i> Submit Payment</button>
                 </form>

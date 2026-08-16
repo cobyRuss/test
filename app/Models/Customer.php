@@ -15,6 +15,8 @@ class Customer extends Model implements AuthenticatableContract
     public $timestamps = false;
 
     protected $fillable = [
+        'first_name',
+        'last_name',
         'full_name',
         'email',
         'phone',

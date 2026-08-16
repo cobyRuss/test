@@ -90,6 +90,16 @@
         .photo-swatch { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #ddd; cursor: zoom-in; }
         .lightbox-swatch { width: 220px; height: 220px; border-radius: 50%; margin: 0 auto; border: 4px solid #f0ebea; }
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+        .vp-picker { max-height: 260px; overflow-y: auto; border: 1px solid #e5e5e5; border-radius: 10px; padding: 10px 12px; background: #fafafa; }
+        .vp-group { margin-bottom: 12px; }
+        .vp-group:last-child { margin-bottom: 0; }
+        .vp-group > strong { font-size: 0.82rem; color: #8a9b6e; display: block; margin-bottom: 4px; }
+        .vp-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+        .vp-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: #d17b88; flex-shrink: 0; }
+        .vp-name { font-size: 0.85rem; color: #5a4a4a; flex: 1; }
+        .vp-qty { width: 64px; padding: 3px 7px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.82rem; text-align: center; }
+        .vp-qty:disabled { background: #f0efef; }
+        .vp-hint { font-size: 0.74rem; color: #8a8a8a; margin-top: 6px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .switch .slider { position: absolute; cursor: pointer; inset: 0; background: #c94a4a; transition: 0.25s; border-radius: 24px; }
         .switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; transition: 0.25s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -172,20 +182,31 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div>
-                                    <label>Flowers used (makes this product depend on flower stock)</label>
-                                    <select name="flowers[]" multiple size="6" style="min-height:120px;">
+                                <div style="grid-column: 1 / -1;">
+                                    <label>Flowers used (flower variants + pcs) — makes this product depend on flower stock</label>
+                                    <div class="vp-picker">
                                         @foreach ($customFlowers as $flower)
-                                            <option value="{{ $flower->id }}">{{ $flower->display_name }}</option>
+                                            <div class="vp-group">
+                                                <strong>{{ $flower->display_name }}</strong>
+                                                @foreach ($flower->variants as $variant)
+                                                    <div class="vp-item">
+                                                        <input type="checkbox" class="vp-check" data-variant="{{ $variant->id }}" name="variants[{{ $variant->id }}]" value="1">
+                                                        <span class="vp-name">{{ $variant->display_name }}</span>
+                                                        <input type="number" class="vp-qty" data-variant="{{ $variant->id }}" name="variant_qty[{{ $variant->id }}]" min="1" placeholder="pcs">
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         @endforeach
-                                    </select>
+                                    </div>
+                                    <p class="vp-hint">Pick the flower variants used and how many pcs each. Leave pcs blank for a random placeholder amount.</p>
                                 </div>
                                 <div>
-                                    <label>Active</label>
-                                    <select name="is_active">
-                                        <option value="1">Yes</option>
-                                        <option value="0">No</option>
-                                    </select>
+                                    <label>Active (available for sale)</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="is_active" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <p class="vp-hint">Turn off to hide this product from customers.</p>
                                 </div>
                                 <div><label>Product Image <span style="color:#c94a4a;">*</span></label><input type="file" name="image" accept="image/*" required></div>
                                 <div style="grid-column: 1 / -1;"><label>Description</label><textarea name="description" rows="2"></textarea></div>
@@ -238,7 +259,7 @@
                                                     data-name="{{ $product->name }}"
                                                     data-price="{{ $product->price }}"
                                                     data-categories="{{ $product->categories->pluck('id')->implode(',') }}"
-                                                    data-flowers="{{ $product->flowers->pluck('id')->implode(',') }}"
+                                                    data-variants="{{ $product->flowerVariants->mapWithKeys(fn ($v) => [$v->id => $v->pivot->quantity])->toJson() }}"
                                                     data-active="{{ $product->is_active ? '1' : '0' }}"
                                                     data-image="{{ $product->image_url }}"
                                                     data-description="{{ $product->description }}">
@@ -1012,7 +1033,10 @@
                                     <td>₱{{ number_format($payment->amount, 2) }}</td>
                                     <td>
                                         @if ($payment->screenshot_path)
-                                            <a href="{{ asset($payment->screenshot_path) }}" target="_blank">View</a>
+                                            <img src="{{ asset($payment->screenshot_path) }}" alt="Screenshot"
+                                                 style="width:48px;height:48px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #ddd;"
+                                                 onclick="openGcashLightbox('{{ asset($payment->screenshot_path) }}', '{{ $payment->order_number }} · Ref {{ $payment->reference_number }}');"
+                                                 title="View screenshot">
                                         @else
                                             <span style="color:#8a8a8a;">None</span>
                                         @endif
@@ -1066,17 +1090,24 @@
                                 @forelse ($orders as $order)
                                     <tr>
                                         <td>
-                                            <a href="{{ route('orders.show', $order->id) }}" style="color:var(--accent);font-weight:600;">{{ $order->order_number }}</a>
+                                            <a href="#" onclick="openOrderDetails({{ $order->id }}); return false;" style="color:var(--accent);font-weight:600;">{{ $order->order_number }}</a>
                                             <br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $order->created_at }}</span>
                                         </td>
                                         <td>{{ $order->full_name }}<br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $order->phone }}</span></td>
                                         <td>₱{{ number_format($order->total_amount, 2) }}</td>
                                         <td>{{ strtoupper($order->payment_method) }}<br>
                                             @php
-                                                $payLabels = ['pending_downpayment' => 'Unpaid', 'partial' => 'Deposit Paid', 'completed' => 'Fully Paid', 'pending_cod' => 'COD'];
+                                                $payLabels = ['pending_downpayment' => 'Unpaid', 'partial' => 'Payment Submitted', 'completed' => 'Paid', 'pending_cod' => 'COD'];
                                                 $payBadge = ['pending_downpayment' => 'badge-pending', 'partial' => 'badge-confirmed', 'completed' => 'badge-delivered', 'pending_cod' => 'badge-pending'];
                                             @endphp
                                             <span class="badge {{ $payBadge[$order->payment_status] ?? 'badge-pending' }}">{{ $payLabels[$order->payment_status] ?? str_replace('_', ' ', $order->payment_status) }}</span>
+                                            @if (! empty($order->gcash_screenshot))
+                                                <br>
+                                                <img src="{{ asset($order->gcash_screenshot) }}" alt="GCash screenshot"
+                                                     style="width:36px;height:36px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #ddd;margin-top:4px;"
+                                                     onclick="openGcashLightbox('{{ asset($order->gcash_screenshot) }}', '{{ $order->order_number }}');"
+                                                     title="View GCash screenshot">
+                                            @endif
                                         </td>
                                         <td><span class="badge badge-{{ $order->order_status }}">{{ ucfirst($order->order_status) }}</span></td>
                                         <td>{{ $order->delivery_date }}<br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $order->municipality }}</span></td>
@@ -1305,20 +1336,29 @@
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label>Flowers used</label>
-                        <select name="flowers[]" id="edit-flowers" multiple size="6" style="min-height:120px;">
+                    <div style="grid-column: 1 / -1;">
+                        <label>Flowers used (flower variants + pcs)</label>
+                        <div class="vp-picker edit-picker">
                             @foreach ($customFlowers as $flower)
-                                <option value="{{ $flower->id }}">{{ $flower->display_name }}</option>
+                                <div class="vp-group">
+                                    <strong>{{ $flower->display_name }}</strong>
+                                    @foreach ($flower->variants as $variant)
+                                        <div class="vp-item">
+                                            <input type="checkbox" class="vp-check" data-variant="{{ $variant->id }}" name="variants[{{ $variant->id }}]" value="1">
+                                            <span class="vp-name">{{ $variant->display_name }}</span>
+                                            <input type="number" class="vp-qty" data-variant="{{ $variant->id }}" name="variant_qty[{{ $variant->id }}]" min="1" placeholder="pcs">
+                                        </div>
+                                    @endforeach
+                                </div>
                             @endforeach
-                        </select>
+                        </div>
                     </div>
                     <div>
-                        <label>Active</label>
-                        <select name="is_active" id="edit-active">
-                            <option value="1">Yes</option>
-                            <option value="0">No</option>
-                        </select>
+                        <label>Active (available for sale)</label>
+                        <label class="switch">
+                            <input type="checkbox" name="is_active" id="edit-active" checked>
+                            <span class="slider"></span>
+                        </label>
                     </div>
                     <div><label>Image</label><input type="file" name="image" accept="image/*"></div>
                     <input type="hidden" name="image_url" id="edit-image">
@@ -1462,6 +1502,33 @@
         </div>
     </div>
 
+    <div class="edit-modal" id="gcashLightbox">
+        <div class="edit-modal-box">
+            <div class="modal-head">
+                <h3><i class="fas fa-receipt"></i> GCash Payment Screenshot</h3>
+                <button type="button" class="modal-close" aria-label="Close">×</button>
+            </div>
+            <div style="text-align:center;">
+                <img id="gcashLightboxImg" src="" alt="GCash payment screenshot" style="max-width:100%;max-height:65vh;border-radius:10px;">
+                <p id="gcashLightboxInfo" style="color:#8a8a8a;font-size:0.85rem;margin-top:10px;"></p>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">
+                <a id="gcashLightboxOpen" href="#" target="_blank" class="btn-sm btn-edit" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> Open in new tab</a>
+                <button type="button" class="btn-sm btn-del" onclick="document.getElementById('gcashLightbox').classList.remove('show');">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="orderDetailsModal">
+        <div class="edit-modal-box wide">
+            <div class="modal-head">
+                <h3><i class="fas fa-receipt"></i> <span id="orderDetailsTitle">Order Details</span></h3>
+                <button type="button" class="modal-close" aria-label="Close">×</button>
+            </div>
+            <div id="orderDetailsBody" style="color:#8a8a8a;">Loading...</div>
+        </div>
+    </div>
+
     <div class="edit-modal" id="editServicePhotoModal">
         <div class="edit-modal-box">
             <h3 style="color:var(--secondary);margin-bottom:16px;">Edit Service Photo</h3>
@@ -1509,12 +1576,40 @@
                 document.getElementById('edit-name').value = this.dataset.name;
                 document.getElementById('edit-price').value = this.dataset.price;
                 document.getElementById('edit-categories').value = this.dataset.categories.split(',');
-                document.getElementById('edit-flowers').value = this.dataset.flowers ? this.dataset.flowers.split(',') : [];
-                document.getElementById('edit-active').value = this.dataset.active || '1';
+                document.getElementById('edit-active').checked = this.dataset.active === '1';
                 document.getElementById('edit-image').value = this.dataset.image;
                 document.getElementById('edit-description').value = this.dataset.description;
+
+                let variants = {};
+                try { variants = JSON.parse(this.dataset.variants || '{}'); } catch (e) { variants = {}; }
+
+                document.querySelectorAll('.edit-picker .vp-check').forEach(chk => {
+                    const v = String(chk.dataset.variant);
+                    const on = Object.prototype.hasOwnProperty.call(variants, v);
+                    chk.checked = on;
+                    const qty = document.querySelector('.edit-picker .vp-qty[data-variant="' + v + '"]');
+                    if (qty) qty.value = on ? variants[v] : '';
+                });
+
                 document.getElementById('editProductModal').classList.add('show');
             });
+        });
+
+        function refreshVpQty(picker) {
+            picker.querySelectorAll('.vp-check').forEach(chk => {
+                const qty = picker.querySelector('.vp-qty[data-variant="' + chk.dataset.variant + '"]');
+                if (qty) qty.disabled = !chk.checked;
+            });
+        }
+
+        document.querySelectorAll('.vp-picker').forEach(picker => {
+            picker.addEventListener('change', e => {
+                if (e.target.classList.contains('vp-check')) {
+                    const qty = picker.querySelector('.vp-qty[data-variant="' + e.target.dataset.variant + '"]');
+                    if (qty) qty.disabled = !e.target.checked;
+                }
+            });
+            refreshVpQty(picker);
         });
 
         document.querySelectorAll('.section-card').forEach(btn => {
@@ -1728,6 +1823,35 @@
                 saveDashboardState(modal ? modal.id : '');
             });
         });
+
+        window.openGcashLightbox = function(src, info) {
+            document.getElementById('gcashLightboxImg').src = src;
+            document.getElementById('gcashLightboxInfo').textContent = info || '';
+            document.getElementById('gcashLightboxOpen').href = src;
+            document.getElementById('gcashLightbox').classList.add('show');
+        };
+
+        const orderDetailsUrl = '{{ route('admin.orders.details', ['id' => 'ORDER_ID']) }}';
+        window.openOrderDetails = function(orderId) {
+            const body = document.getElementById('orderDetailsBody');
+            const title = document.getElementById('orderDetailsTitle');
+            title.textContent = 'Order Details';
+            body.innerHTML = '<p style="text-align:center;color:#8a8a8a;">Loading...</p>';
+            fetch(orderDetailsUrl.replace('ORDER_ID', orderId))
+                .then(r => {
+                    if (! r.ok) throw new Error('Failed');
+                    return r.text();
+                })
+                .then(html => {
+                    body.innerHTML = html;
+                    const orderNumber = (body.querySelector('meta[data-order-number]') || {}).content || '';
+                    if (orderNumber) title.textContent = orderNumber;
+                    document.getElementById('orderDetailsModal').classList.add('show');
+                })
+                .catch(() => {
+                    body.innerHTML = '<p style="text-align:center;color:#b3261e;">Failed to load order details.</p>';
+                });
+        };
 
         initAdmin();
         restoreDashboardState();

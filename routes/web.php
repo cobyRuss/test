@@ -74,6 +74,7 @@ Route::prefix('admin')->group(function () {
     Route::middleware('auth:admin')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard.post');
+        Route::get('/orders/{id}/details', [DashboardController::class, 'orderDetails'])->whereNumber('id')->name('admin.orders.details');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
     });
 });

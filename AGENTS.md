@@ -92,8 +92,16 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   "if active is on, it means it's in stock." One Active toggle per item (flowers, variants,
   ribbons, fillers, colors, styles). `CustomizationOption::isAvailable()` = `is_active`.
   A flower/filler is available iff active; a product is available iff `is_active` AND every
-  linked flower is active (`Product::is_available`, `categoryAvailability()`). Inactive
+  linked **flower variant** is active AND its parent flower option is active
+  (`Product::is_available`, `categoryAvailability()`). Inactive
   flowers/fillers are hidden on the customize page; inactive variants are never loaded.
+- Products (2026-08-16): the old `flower_product` pivot is **gone**. Products link to
+  **flower variants with pcs** via `product_flower_variants(product_id, variant_id, quantity)`.
+  `Product::flowerVariants()` (withPivot('quantity')); Add/Edit Product admin modals use a
+  grouped variant picker (checkbox + pcs per variant; blank pcs → random 5–30) and an
+  **Active switch** instead of a select. Auto description when blank on add:
+  `Includes: Nx Flower (Variant), …`. `products.id` is `int` — the pivot's `product_id` FK
+  must be `integer`, while `variant_id` is `unsignedBigInteger` (errno 150 otherwise).
 - Admin dashboard is sticky after saves AND pagination clicks:
   `saveDashboardState()`/`restoreDashboardState()` (sessionStorage `hs_scroll` +
   `hs_open_modal` + `hs_modal_scroll`) — the open **section modal** is captured
@@ -107,8 +115,12 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
 - Messages: `loadMessages(Request $request)` is paginated at **20/page** with a
   `message_search` filter (name/email/message LIKE) and `mpage` param. Orders are also
   paginated at **20/page** (`opage`). Pagination only renders when >1 page.
-- Payment: **both COD and GCash require a 50% GCash down payment** before confirmation.
-  `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Deposit
-  Paid) → `completed` (Fully Paid on delivery). GCash screenshot is required.
+- Payment: **GCash only, 100% paid upfront** — COD removed (2026-08-16). Checkout has only the
+  GCash option; `orders.down_payment` = full total, `remaining_balance` = 0. GCash number +
+  account name come from `config/happystem.php` (`GCASH_NUMBER`, `GCASH_ACCOUNT_NAME` in `.env`).
+  `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Payment Submitted,
+  awaiting verification) → `completed` (Paid — admin Verify marks it completed). GCash
+  screenshot is required; admin views it inline via the `#gcashLightbox` modal (thumbnails in
+  the Payments tab and the Orders tab Payment column).
 - Admin dashboard sidebar: solid `#8a9b6e`, sticky (never scrolls with content), stretched to
   the bottom of the page (`align-self: stretch` on `.admin-nav`).

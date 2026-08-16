@@ -26,8 +26,6 @@ class CheckoutController extends Controller
         $selectedMunicipality = old('municipality', $customer->municipality ?? 'Bangued');
         $deliveryFee = $deliveryFees[$selectedMunicipality] ?? 100;
         $grandTotal = $subtotal + $deliveryFee;
-        $downPayment = $grandTotal * 0.5;
-        $remaining = $grandTotal - $downPayment;
 
         return view('checkout.index', compact(
             'customer',
@@ -36,8 +34,6 @@ class CheckoutController extends Controller
             'selectedMunicipality',
             'deliveryFee',
             'grandTotal',
-            'downPayment',
-            'remaining',
             'deliveryFees'
         ));
     }
@@ -52,22 +48,51 @@ class CheckoutController extends Controller
         }
 
         $deliveryFees = config('deliveryfees');
+        $phoneRule = ['required', 'regex:/^9\d{9}$/'];
 
         $data = $request->validate([
-            'payment_method' => ['required', 'in:gcash,cod'],
+            'sender_first_name' => ['required'],
+            'sender_last_name' => ['required'],
+            'sender_phone' => $phoneRule,
+            'recipient_mode' => ['required', 'in:me,someone_else'],
+            'recipient_first_name' => ['required_if:recipient_mode,someone_else'],
+            'recipient_last_name' => ['required_if:recipient_mode,someone_else'],
+            'recipient_phone' => ['required_if:recipient_mode,someone_else', 'regex:/^9\d{9}$/'],
+            'payment_method' => ['required', 'in:gcash'],
             'municipality' => ['required', 'in:'.implode(',', array_keys($deliveryFees))],
+            'barangay' => ['required'],
             'street' => ['required'],
             'delivery_date' => ['required', 'date', 'after:today'],
+            'message_for_recipient' => ['nullable', 'max:400'],
             'special_instructions' => ['nullable'],
+            'sender_anonymous' => ['nullable'],
+        ], [
+            'sender_phone.regex' => 'Enter a valid 10-digit mobile number (e.g. 9171234567).',
+            'recipient_phone.regex' => 'Enter a valid 10-digit mobile number (e.g. 9171234567).',
+            'recipient_first_name.required_if' => 'Recipient first name is required.',
+            'recipient_last_name.required_if' => 'Recipient last name is required.',
+            'recipient_phone.required_if' => 'Recipient phone number is required.',
+            'message_for_recipient.max' => 'Message for recipient must be 400 characters or fewer.',
         ]);
 
         $method = $data['payment_method'];
         $subtotal = $cart->subtotal();
         $deliveryFee = $deliveryFees[$data['municipality']] ?? 100;
         $grandTotal = $subtotal + $deliveryFee;
-        $downPayment = $grandTotal * 0.5;
-        $remaining = $grandTotal - $downPayment;
+        $downPayment = $grandTotal;
+        $remaining = 0;
 
+        $senderPhone = '0'.$data['sender_phone'];
+
+        if ($data['recipient_mode'] === 'someone_else') {
+            $recipientName = trim($data['recipient_first_name'].' '.$data['recipient_last_name']);
+            $recipientPhone = '0'.$data['recipient_phone'];
+        } else {
+            $recipientName = trim($data['sender_first_name'].' '.$data['sender_last_name']);
+            $recipientPhone = $senderPhone;
+        }
+
+        $deliveryAddress = trim($data['street'].', '.$data['barangay'].', '.$data['municipality'].', Abra');
         $orderNumber = 'ORD-'.date('Ymd').'-'.rand(1000, 9999);
 
         try {
@@ -76,6 +101,9 @@ class CheckoutController extends Controller
             $order = Order::query()->create([
                 'order_number' => $orderNumber,
                 'customer_id' => $customer->id,
+                'sender_phone' => $senderPhone,
+                'recipient_name' => $recipientName,
+                'recipient_phone' => $recipientPhone,
                 'total_amount' => $grandTotal,
                 'delivery_fee' => $deliveryFee,
                 'down_payment' => $downPayment,
@@ -83,10 +111,14 @@ class CheckoutController extends Controller
                 'payment_method' => $method,
                 'payment_status' => 'pending_downpayment',
                 'order_status' => 'pending',
-                'delivery_address' => $data['street'].', '.$data['municipality'].', Abra',
+                'delivery_address' => $deliveryAddress,
                 'municipality' => $data['municipality'],
+                'recipient_barangay' => $data['barangay'],
+                'recipient_street' => $data['street'],
                 'delivery_date' => $data['delivery_date'],
-                'special_instructions' => $data['special_instructions'],
+                'special_instructions' => $data['special_instructions'] ?? null,
+                'message_for_recipient' => $data['message_for_recipient'] ?? null,
+                'sender_anonymous' => isset($data['sender_anonymous']) ? 1 : 0,
             ]);
 
             foreach ($items as $item) {

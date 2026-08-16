@@ -28,11 +28,6 @@ class CustomizationOption extends Model
             ->orderBy('sort_order');
     }
 
-    public function products()
-    {
-        return $this->belongsToMany(Product::class, 'flower_product', 'flower_id', 'product_id');
-    }
-
     public function isAvailable(): bool
     {
         return (bool) $this->is_active;

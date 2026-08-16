@@ -12,10 +12,13 @@ class OrderController extends Controller
 {
     private function findOrder(int $id): Order
     {
-        return Order::query()
-            ->where('id', $id)
-            ->where('customer_id', Auth::guard('web')->id())
-            ->firstOrFail();
+        $query = Order::query()->where('id', $id);
+
+        if (! Auth::guard('admin')->check()) {
+            $query->where('customer_id', Auth::guard('web')->id());
+        }
+
+        return $query->firstOrFail();
     }
 
     public function show(Request $request, int $id)
@@ -35,8 +38,8 @@ class OrderController extends Controller
 
         $paymentLabels = [
             'pending_downpayment' => 'Unpaid',
-            'partial' => 'Deposit Paid',
-            'completed' => 'Fully Paid',
+            'partial' => 'Payment Submitted',
+            'completed' => 'Paid',
             'pending_cod' => 'COD',
         ];
 

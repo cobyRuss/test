@@ -17,9 +17,10 @@ class Product extends Model
         return $this->belongsToMany(ProductCategory::class, 'category_product', 'product_id', 'category_id');
     }
 
-    public function flowers()
+    public function flowerVariants()
     {
-        return $this->belongsToMany(CustomizationOption::class, 'flower_product', 'product_id', 'flower_id');
+        return $this->belongsToMany(CustomizationOptionVariant::class, 'product_flower_variants', 'product_id', 'variant_id')
+            ->withPivot('quantity');
     }
 
     public function getIsAvailableAttribute(): bool
@@ -28,6 +29,8 @@ class Product extends Model
             return false;
         }
 
-        return $this->flowers->every(fn (CustomizationOption $flower) => $flower->isAvailable());
+        return $this->flowerVariants->every(
+            fn (CustomizationOptionVariant $variant) => $variant->is_active && $variant->option && $variant->option->isAvailable()
+        );
     }
 }

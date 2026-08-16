@@ -30,7 +30,7 @@
                 </div>
 
                 <p style="font-size:0.88rem;color:var(--dark);margin-bottom:20px;">
-                    Any GCash down payment will be refunded within 3–5 business days. For questions,
+                    Any GCash payment will be refunded within 3–5 business days. For questions,
                     please contact us at happystem.bangued@gmail.com.
                 </p>
 
