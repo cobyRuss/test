@@ -3,6 +3,15 @@
 @section('title', 'Your Cart | HappyStem')
 
 @section('content')
+    <style>
+        .qty-stepper { display: inline-flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+        .qty-stepper .qty-btn { width: 30px; height: 34px; border: none; background: #f7f3f4; color: var(--dark); font-size: 1rem; cursor: pointer; }
+        .qty-stepper .qty-btn:hover { background: var(--primary); color: #fff; }
+        .qty-stepper .qty-input { width: 52px; height: 34px; border: none; border-left: 1px solid #ddd; border-right: 1px solid #ddd; text-align: center; font-size: 0.88rem; -moz-appearance: textfield; }
+        .qty-stepper .qty-input::-webkit-inner-spin-button, .qty-stepper .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .qty-warning { flex-basis: 100%; color: #b3261e; font-size: 0.78rem; font-weight: 600; display: none; }
+    </style>
+
     <section class="page-heading">
         <h2>Your Cart</h2>
         <p>Review your items and proceed to checkout.</p>
@@ -12,6 +21,9 @@
         <div class="container">
 
             @auth('web')
+                @if (session('cart_error'))
+                    <div style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c2;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:0.9rem;">{{ session('cart_error') }}</div>
+                @endif
                 @if (empty($items))
                     <div style="text-align:center;padding:50px 0;">
                         <i class="fas fa-shopping-cart" style="font-size:3rem;color:var(--primary);"></i>
@@ -40,10 +52,19 @@
                                             @endif
                                             <p style="color:var(--accent);font-weight:600;">₱{{ number_format($item['price'], 2) }}</p>
                                         </div>
-                                        <form action="{{ route('cart.update') }}" method="POST" style="display:flex;align-items:center;gap:8px;">
+                                        <form action="{{ route('cart.update') }}" method="POST" class="cart-update-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                             @csrf
                                             <input type="hidden" name="cart_id" value="{{ $item['cart_id'] }}">
-                                            <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px;">
+                                            @if ($item['custom'])
+                                                <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px;">
+                                            @else
+                                                <div class="qty-stepper" data-max="20">
+                                                    <button type="button" class="qty-btn qty-minus" aria-label="Decrease quantity">&minus;</button>
+                                                    <input type="number" name="quantity" class="qty-input" value="{{ $item['quantity'] }}" min="1" max="20">
+                                                    <button type="button" class="qty-btn qty-plus" aria-label="Increase quantity">+</button>
+                                                </div>
+                                                <div class="qty-warning">(!) Sorry, the maximum value is reached</div>
+                                            @endif
                                             <button type="submit" class="submit-btn" style="padding:8px 14px;font-size:0.82rem;">Update</button>
                                         </form>
                                         <form action="{{ route('cart.remove') }}" method="POST">
@@ -90,3 +111,51 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelectorAll('.qty-stepper').forEach(stepper => {
+        const input = stepper.querySelector('.qty-input');
+        const form = stepper.closest('.cart-update-form');
+        const warning = form ? form.querySelector('.qty-warning') : null;
+        const max = parseInt(stepper.dataset.max, 10) || 20;
+
+        let warningTimer;
+
+        function showWarning() {
+            if (!warning) return;
+            warning.style.display = 'block';
+            clearTimeout(warningTimer);
+            warningTimer = setTimeout(() => { warning.style.display = 'none'; }, 2500);
+        }
+
+        stepper.querySelector('.qty-minus').addEventListener('click', () => {
+            const val = parseInt(input.value, 10) || 1;
+            input.value = Math.max(1, val - 1);
+        });
+
+        stepper.querySelector('.qty-plus').addEventListener('click', () => {
+            const val = parseInt(input.value, 10) || 1;
+            if (val >= max) {
+                input.value = max;
+                showWarning();
+                return;
+            }
+            input.value = val + 1;
+        });
+
+        input.addEventListener('change', () => {
+            let val = parseInt(input.value, 10);
+            if (isNaN(val) || val < 1) {
+                val = 1;
+            }
+            if (val > max) {
+                input.value = max;
+                showWarning();
+            } else {
+                input.value = val;
+            }
+        });
+    });
+</script>
+@endpush

@@ -102,6 +102,12 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   **Active switch** instead of a select. Auto description when blank on add:
   `Includes: Nx Flower (Variant), …`. `products.id` is `int` — the pivot's `product_id` FK
   must be `integer`, while `variant_id` is `unsignedBigInteger` (errno 150 otherwise).
+- Fixed-product cart quantity is capped at **20 per line item** (2026-08-17):
+  `CartController::MAX_PRODUCT_QTY = 20`. `add()` caps new lines and stops incrementing at
+  20 (JSON message `(!) Sorry, the maximum value is reached`); `update()` clamps and flashes
+  `cart_error`. Cart page shows a `−/+` stepper (`.qty-stepper` in `cart/index.blade.php`)
+  that blocks increments past 20 and shows the inline warning. Custom arrangements
+  (cart_id `custom`) are NOT capped.
 - Admin dashboard is sticky after saves AND pagination clicks:
   `saveDashboardState()`/`restoreDashboardState()` (sessionStorage `hs_scroll` +
   `hs_open_modal` + `hs_modal_scroll`) — the open **section modal** is captured

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
+    public const MAX_PRODUCT_QTY = 20;
+
     public function index(CartService $cart)
     {
         $items = $cart->items();
@@ -37,6 +39,11 @@ class CartController extends Controller
                 session(['custom_arrangement' => $custom]);
             }
         } else {
+            if ($quantity > self::MAX_PRODUCT_QTY) {
+                $quantity = self::MAX_PRODUCT_QTY;
+                session()->flash('cart_error', '(!) Sorry, the maximum value is reached');
+            }
+
             CartItem::query()
                 ->where('id', $cartId)
                 ->where('customer_id', Auth::guard('web')->id())
@@ -89,12 +96,23 @@ class CartController extends Controller
             ->first();
 
         if ($existing) {
+            $newQty = $existing->quantity + $quantity;
+
+            if ($newQty > self::MAX_PRODUCT_QTY) {
+                $existing->update(['quantity' => self::MAX_PRODUCT_QTY]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => '(!) Sorry, the maximum value is reached',
+                ]);
+            }
+
             $existing->increment('quantity', $quantity);
         } else {
             CartItem::query()->create([
                 'customer_id' => $customerId,
                 'product_id' => $productId,
-                'quantity' => $quantity,
+                'quantity' => min($quantity, self::MAX_PRODUCT_QTY),
             ]);
         }
 

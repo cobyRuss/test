@@ -76,7 +76,7 @@
                                             <i class="fas fa-seedling" style="font-size:1.8rem;color:var(--primary);margin-bottom:6px;display:block;"></i>
                                         @endif
                                         <div style="font-size:0.9rem;color:var(--dark);font-weight:600;">{{ $flower->display_name }}</div>
-                                        <div class="flower-price" id="flower-price-{{ $flower->id }}">₱{{ number_format($flower->price, 2) }}/bouquet</div>
+                                        <div class="flower-price" id="flower-price-{{ $flower->id }}">₱{{ number_format($flower->price, 2) }}/stem</div>
                                         @if ($colorVariants->count() === 0)
                                             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
                                                 <button type="button" class="qty-minus" style="background:var(--primary);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold;">−</button>
@@ -387,7 +387,7 @@
 
     function updateFlowerPrice(data) {
         const el = document.getElementById('flower-price-' + data.id);
-        if (el) el.textContent = '₱' + unitPrice({ flower: data, size: data.size, color: null }).toFixed(2) + '/bouquet';
+        if (el) el.textContent = '₱' + unitPrice({ flower: data, size: data.size, color: null }).toFixed(2) + '/stem';
     }
 
     const fillers = {};

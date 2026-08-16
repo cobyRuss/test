@@ -456,3 +456,16 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 - **Testing note:** curl needs the real session cookie — it's named **`happystem-session`**
   (not `laravel_session`), so grep the cookie jar for that name or the dashboard fetches return
   the login page.
+
+## Latest work (2026-08-17): fixed-product quantity cap of 20
+
+- **Fixed (non-customized) products max at 20 per cart line.** `CartController` has
+  `MAX_PRODUCT_QTY = 20`. `add()` caps new lines and stops incrementing past 20 (returns
+  `"(!) Sorry, the maximum value is reached"` in the JSON so the shop alert shows it);
+  `update()` caps to 20 and flashes `cart_error` shown at the top of the cart page.
+- **Cart page steppers:** non-custom line items now have a `−/+` stepper (`.qty-stepper`
+  in `cart/index.blade.php`, inline `<style>` + `@push('scripts')`). The `+` button won't
+  go past 20 and typing/clamping over 20 shows the inline warning
+  `(!) Sorry, the maximum value is reached` (auto-hides after 2.5s). Custom arrangements
+  (cart_id `custom`) keep the plain input — the cap is fixed products only.
+- Server-side cap is the source of truth; the stepper just prevents it from being hit.
