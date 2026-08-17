@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GcashPayment;
 use App\Models\Order;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -57,6 +58,13 @@ class GcashPaymentController extends Controller
         ]);
 
         $order->update(['payment_status' => 'partial']);
+
+        NotificationService::sendToAdmins(
+            'payment_pending',
+            'Payment pending verification',
+            'GCash payment (₱'.number_format($order->down_payment, 2).') submitted for '.$order->order_number.'.',
+            'payments:'.$order->id
+        );
 
         $success = 'Payment submitted successfully! Our team will verify your payment within 24 hours.';
 

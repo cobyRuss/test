@@ -275,6 +275,10 @@ nav a:hover, nav a.active {
     transition: var(--transition);
 }
 
+.product-card[data-href] {
+    cursor: pointer;
+}
+
 .product-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
@@ -284,7 +288,6 @@ nav a:hover, nav a.active {
     height: 200px;
     width: 100%;
     overflow: hidden;
-    cursor: pointer;
 }
 
 .product-img img {
@@ -378,7 +381,7 @@ nav a:hover, nav a.active {
 }
 
 .add-to-cart-btn {
-    background-color: var(--primary);
+    background-color: var(--secondary);
     color: white;
     border: none;
     padding: 10px 15px;
@@ -660,6 +663,28 @@ footer {
     width: 20px;
 }
 
+.reveal-contact-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-top: 15px;
+    transition: var(--transition);
+}
+
+.reveal-contact-btn:hover {
+    background-color: var(--secondary);
+}
+
 .modal {
     display: none;
     position: fixed;
@@ -838,7 +863,7 @@ footer {
 }
 
 .submit-btn {
-    background-color: var(--secondary);
+    background-color: var(--accent);
     color: white;
     border: none;
     padding: 12px 30px;
@@ -848,7 +873,7 @@ footer {
 }
 
 .submit-btn:hover {
-    background-color: var(--accent);
+    background-color: var(--secondary);
 }
 
 .category-name {

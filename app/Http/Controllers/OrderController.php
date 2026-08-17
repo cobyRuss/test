@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\GcashPayment;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -99,6 +100,13 @@ class OrderController extends Controller
             'cancel_note' => $note,
             'cancelled_at' => now(),
         ]);
+
+        NotificationService::sendToAdmins(
+            'order_cancelled',
+            'Order cancelled by customer',
+            'Order '.$order->order_number.' was cancelled ('.$reason.').',
+            'orders:'.$order->id
+        );
 
         session([
             'cancelled_order' => [

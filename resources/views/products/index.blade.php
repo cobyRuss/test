@@ -33,7 +33,7 @@
             @else
                 <div class="catalogue">
                     @foreach ($products as $product)
-                        <div class="product-card {{ $product->is_available ? '' : 'is-unavailable' }}">
+                        <div class="product-card {{ $product->is_available ? '' : 'is-unavailable' }}" data-href="{{ route('products.show', $product->id) }}">
                             <div class="product-img">
                                 <img src="{{ asset('images/'.$product->image_url) }}" alt="{{ $product->name }}" loading="lazy">
                                 @if (! $product->is_available)
@@ -44,6 +44,9 @@
                                 <h3>{{ $product->name }}</h3>
                                 <p>{{ \Illuminate\Support\Str::limit($product->description, 80) }}</p>
                                 <div class="product-price">₱{{ number_format($product->price, 2) }}</div>
+                                @if ($product->review_count > 0)
+                                    <div style="color:#f5a623;font-size:0.8rem;">@for ($i = 1; $i <= 5; $i)<i class="fas fa-star{{ $i <= round($product->average_rating) ? '' : '-o' }}"></i>@endfor <span style="color:#aaa;">({{ $product->review_count }})</span></div>
+                                @endif
                                 <div class="product-actions">
                                     @if ($product->is_available)
                                         @auth('web')
@@ -64,9 +67,6 @@
                                     @else
                                         <span class="unavailable-btn"><i class="fas fa-exclamation-triangle"></i> Unavailable</span>
                                     @endif
-                                    <a class="buy-now-btn" href="{{ route('products.show', $product->id) }}" style="text-decoration:none;">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                 </div>
                             </div>
                         </div>

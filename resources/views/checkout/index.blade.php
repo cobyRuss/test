@@ -85,9 +85,6 @@
 
         @php
             $senderPhone = old('sender_phone', (string) ($customer->phone ?? ''));
-            if (str_starts_with($senderPhone, '0') && strlen($senderPhone) === 11) {
-                $senderPhone = substr($senderPhone, 1);
-            }
         @endphp
 
         <div class="hs-checkout-grid">

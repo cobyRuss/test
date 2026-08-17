@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
+use App\Models\Customer;
 use App\Models\CustomizationOption;
 use App\Models\CustomizationOptionVariant;
 use App\Models\GcashPayment;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Review;
+use App\Models\ReviewPhoto;
 use App\Models\ServicePhoto;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +51,8 @@ class DashboardController extends Controller
         $data = array_merge($data, $this->loadOrders($request));
         $data = array_merge($data, $this->loadReports($request));
         $data = array_merge($data, $this->loadCustomizationOptions($request));
+        $data = array_merge($data, $this->loadNotifications($request));
+        $data = array_merge($data, $this->loadReviews($request));
 
         return view('admin.dashboard', $data);
     }
@@ -468,6 +475,17 @@ class DashboardController extends Controller
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                         'payment_status' => 'completed',
                     ]);
+                    $order = Order::query()->find((int) $request->input('order_id'));
+
+                    if ($order) {
+                        NotificationService::sendToCustomer(
+                            $order->customer_id,
+                            'payment_confirmed',
+                            'Payment verified',
+                            'Your GCash payment for order '.$order->order_number.' has been confirmed. Thank you!',
+                            route('orders.show', $order->id)
+                        );
+                    }
                     $message = 'GCash payment verified — order marked as fully paid!';
                     break;
 
@@ -475,6 +493,17 @@ class DashboardController extends Controller
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                         'order_status' => 'confirmed',
                     ]);
+                    $order = Order::query()->find((int) $request->input('order_id'));
+
+                    if ($order) {
+                        NotificationService::sendToCustomer(
+                            $order->customer_id,
+                            'order_status',
+                            'Order confirmed',
+                            'Your order '.$order->order_number.' has been confirmed. We\'re getting your flowers ready!',
+                            route('orders.show', $order->id)
+                        );
+                    }
                     $message = 'Order approved!';
                     session(['active_tab' => 'orders']);
                     break;
@@ -483,6 +512,17 @@ class DashboardController extends Controller
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                         'order_status' => 'cancelled',
                     ]);
+                    $order = Order::query()->find((int) $request->input('order_id'));
+
+                    if ($order) {
+                        NotificationService::sendToCustomer(
+                            $order->customer_id,
+                            'order_status',
+                            'Order declined',
+                            'We\'re sorry, your order '.$order->order_number.' was not approved. Please contact us for details.',
+                            route('orders.show', $order->id)
+                        );
+                    }
                     $message = 'Order declined.';
                     session(['active_tab' => 'orders']);
                     break;
@@ -494,6 +534,25 @@ class DashboardController extends Controller
                         DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                             'order_status' => $request->input('new_status'),
                         ]);
+                        $order = Order::query()->find((int) $request->input('order_id'));
+
+                        if ($order) {
+                            $statusMessages = [
+                                'confirmed' => ['Order confirmed', 'Your order '.$order->order_number.' has been confirmed. We\'re getting your flowers ready!'],
+                                'preparing' => ['Order preparing', 'Your order '.$order->order_number.' is being prepared — your flowers are coming together!'],
+                                'ready' => ['Ready for delivery', 'Your order '.$order->order_number.' is ready for delivery!'],
+                                'delivered' => ['Order delivered', 'Your order '.$order->order_number.' has been delivered. Thank you for shopping with HappyStem!'],
+                                'cancelled' => ['Order cancelled', 'Your order '.$order->order_number.' has been cancelled.'],
+                            ];
+                            [$title, $body] = $statusMessages[$request->input('new_status')];
+                            NotificationService::sendToCustomer(
+                                $order->customer_id,
+                                'order_status',
+                                $title,
+                                $body,
+                                route('orders.show', $order->id)
+                            );
+                        }
                         $message = 'Order status updated!';
                     }
                     session(['active_tab' => 'orders']);
@@ -503,8 +562,96 @@ class DashboardController extends Controller
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                         'payment_status' => 'completed',
                     ]);
+                    $order = Order::query()->find((int) $request->input('order_id'));
+
+                    if ($order) {
+                        NotificationService::sendToCustomer(
+                            $order->customer_id,
+                            'payment_confirmed',
+                            'Payment confirmed',
+                            'Your payment for order '.$order->order_number.' has been marked as paid.',
+                            route('orders.show', $order->id)
+                        );
+                    }
                     $message = 'Payment marked as fully paid!';
                     session(['active_tab' => 'orders']);
+                    break;
+
+                case 'reply_message':
+                    $contactMessage = ContactMessage::query()->find((int) $request->input('message_id'));
+                    $replyText = trim((string) $request->input('admin_reply'));
+
+                    if ($contactMessage && $replyText !== '') {
+                        $contactMessage->update([
+                            'admin_reply' => $replyText,
+                            'replied_at' => now(),
+                        ]);
+                        $customer = $contactMessage->customer_id
+                            ? Customer::query()->find($contactMessage->customer_id)
+                            : Customer::query()->where('email', $contactMessage->email)->first();
+
+                        if ($customer) {
+                            NotificationService::sendToCustomer(
+                                $customer->id,
+                                'admin_reply',
+                                'New reply from HappyStem',
+                                Str::limit($replyText, 90),
+                                route('account.messages')
+                            );
+                        }
+                        $message = 'Reply sent!';
+                    } elseif (! $contactMessage) {
+                        $message = 'Message not found.';
+                    } else {
+                        $message = 'Reply cannot be empty.';
+                    }
+                    session(['active_tab' => 'messages']);
+                    break;
+
+                case 'hide_review':
+                    $review = Review::query()->find((int) $request->input('review_id'));
+                    if ($review) {
+                        $review->update(['is_visible' => false]);
+                        NotificationService::sendToCustomer(
+                            $review->customer_id,
+                            'review_hidden',
+                            'Your review has been hidden',
+                            'Your review for "'.$review->product->name.'" has been hidden by the admin.',
+                            ''
+                        );
+                        $message = 'Review hidden.';
+                    } else {
+                        $message = 'Review not found.';
+                    }
+                    session(['active_tab' => 'reviews']);
+                    break;
+
+                case 'show_review':
+                    $review = Review::query()->find((int) $request->input('review_id'));
+                    if ($review) {
+                        $review->update(['is_visible' => true]);
+                        $message = 'Review is now visible.';
+                    } else {
+                        $message = 'Review not found.';
+                    }
+                    session(['active_tab' => 'reviews']);
+                    break;
+
+                case 'delete_review':
+                    $review = Review::query()->find((int) $request->input('review_id'));
+                    if ($review) {
+                        foreach ($review->photos as $photo) {
+                            $path = public_path('images/'.$photo->image_url);
+                            if (file_exists($path)) {
+                                unlink($path);
+                            }
+                        }
+                        $review->delete();
+                        $message = 'Review deleted permanently.';
+                    } else {
+                        $message = 'Review not found.';
+                    }
+                    session(['active_tab' => 'reviews']);
                     break;
         }
 
@@ -785,6 +932,54 @@ class DashboardController extends Controller
             ->get();
 
         return compact('pendingPayments');
+    }
+
+    private function loadNotifications(Request $request): array
+    {
+        $adminId = Auth::guard('admin')->id();
+        $notificationsPage = max(1, (int) $request->query('npage', 1));
+        $notificationsPerPage = 20;
+
+        $query = Notification::query()->forAdmin($adminId);
+
+        $totalNotifications = (clone $query)->count();
+        $notificationsTotalPages = max(1, (int) ceil($totalNotifications / $notificationsPerPage));
+
+        $notifications = (clone $query)
+            ->orderByDesc('created_at')
+            ->offset(($notificationsPage - 1) * $notificationsPerPage)
+            ->limit($notificationsPerPage)
+            ->get();
+
+        $defaultReply = ContactMessage::DEFAULT_REPLY;
+
+        return compact('notifications', 'totalNotifications', 'notificationsTotalPages', 'notificationsPage', 'defaultReply');
+    }
+
+    private function loadReviews(Request $request): array
+    {
+        $reviewsPage = max(1, (int) $request->query('rpage', 1));
+        $reviewsPerPage = 20;
+        $reviewFilter = $request->query('review_filter', 'all');
+
+        $query = Review::query()->with('customer', 'product', 'photos');
+
+        if ($reviewFilter === 'visible') {
+            $query->where('is_visible', true);
+        } elseif ($reviewFilter === 'hidden') {
+            $query->where('is_visible', false);
+        }
+
+        $totalReviews = (clone $query)->count();
+        $reviewsTotalPages = max(1, (int) ceil($totalReviews / $reviewsPerPage));
+
+        $reviews = (clone $query)
+            ->orderByDesc('created_at')
+            ->offset(($reviewsPage - 1) * $reviewsPerPage)
+            ->limit($reviewsPerPage)
+            ->get();
+
+        return compact('reviews', 'totalReviews', 'reviewsTotalPages', 'reviewsPage', 'reviewFilter');
     }
 
     private function loadMessages(Request $request): array

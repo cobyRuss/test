@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
@@ -10,12 +11,14 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomizeController;
 use App\Http\Controllers\GcashPaymentController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SavedCustomizationController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServicePhotoController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -65,6 +68,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'index'])->name('account');
     Route::post('/account/update-profile', [AccountController::class, 'updateProfile'])->name('account.updateProfile');
     Route::get('/account/orders', [AccountController::class, 'orders'])->name('account.orders');
+    Route::get('/account/notifications', [AccountController::class, 'notifications'])->name('account.notifications');
+    Route::get('/account/messages', [AccountController::class, 'messages'])->name('account.messages');
+    Route::get('/notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::post('/notifications/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+    Route::post('/products/{id}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::put('/reviews/{id}', [ReviewController::class, 'update'])->name('reviews.update');
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+    Route::delete('/reviews/photo/{id}', [ReviewController::class, 'deletePhoto'])->name('reviews.deletePhoto');
 });
 
 Route::prefix('admin')->group(function () {
@@ -75,6 +87,8 @@ Route::prefix('admin')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard.post');
         Route::get('/orders/{id}/details', [DashboardController::class, 'orderDetails'])->whereNumber('id')->name('admin.orders.details');
+        Route::get('/notifications/unread', [AdminNotificationController::class, 'unread'])->name('admin.notifications.unread');
+        Route::post('/notifications/read', [AdminNotificationController::class, 'markRead'])->name('admin.notifications.read');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
     });
 });

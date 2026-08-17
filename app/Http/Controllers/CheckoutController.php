@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\CartService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,7 @@ class CheckoutController extends Controller
             'recipient_mode' => ['required', 'in:me,someone_else'],
             'recipient_first_name' => ['required_if:recipient_mode,someone_else'],
             'recipient_last_name' => ['required_if:recipient_mode,someone_else'],
-            'recipient_phone' => ['required_if:recipient_mode,someone_else', 'regex:/^9\d{9}$/'],
+            'recipient_phone' => $request->input('recipient_mode') === 'someone_else' ? $phoneRule : ['nullable'],
             'payment_method' => ['required', 'in:gcash'],
             'municipality' => ['required', 'in:'.implode(',', array_keys($deliveryFees))],
             'barangay' => ['required'],
@@ -69,9 +70,9 @@ class CheckoutController extends Controller
         ], [
             'sender_phone.regex' => 'Enter a valid 10-digit mobile number (e.g. 9171234567).',
             'recipient_phone.regex' => 'Enter a valid 10-digit mobile number (e.g. 9171234567).',
+            'recipient_phone.required' => 'Recipient phone number is required.',
             'recipient_first_name.required_if' => 'Recipient first name is required.',
             'recipient_last_name.required_if' => 'Recipient last name is required.',
-            'recipient_phone.required_if' => 'Recipient phone number is required.',
             'message_for_recipient.max' => 'Message for recipient must be 400 characters or fewer.',
         ]);
 
@@ -82,11 +83,11 @@ class CheckoutController extends Controller
         $downPayment = $grandTotal;
         $remaining = 0;
 
-        $senderPhone = '0'.$data['sender_phone'];
+        $senderPhone = $data['sender_phone'];
 
         if ($data['recipient_mode'] === 'someone_else') {
             $recipientName = trim($data['recipient_first_name'].' '.$data['recipient_last_name']);
-            $recipientPhone = '0'.$data['recipient_phone'];
+            $recipientPhone = $data['recipient_phone'];
         } else {
             $recipientName = trim($data['sender_first_name'].' '.$data['sender_last_name']);
             $recipientPhone = $senderPhone;
@@ -146,6 +147,13 @@ class CheckoutController extends Controller
             'last_order_id' => $order->id,
             'last_order_number' => $orderNumber,
         ]);
+
+        NotificationService::sendToAdmins(
+            'new_order',
+            'New order '.$orderNumber,
+            '₱'.number_format($grandTotal, 2).' from '.$customer->full_name.' — waiting for payment.',
+            'orders:'.$order->id
+        );
 
         return redirect()->route('orders.gcash', $order->id);
     }

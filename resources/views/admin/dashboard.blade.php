@@ -14,6 +14,26 @@
         .admin-topbar { background: linear-gradient(135deg, #e8b4bc, #8a9b6e); color: #fff; padding: 14px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
         .admin-topbar h2 { margin: 0; font-size: 1.2rem; }
         .admin-topbar a { color: #fff; text-decoration: none; font-weight: 600; }
+        .notif-bell { position: relative; }
+        .notif-bell-btn { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; position: relative; flex-shrink: 0; }
+        .notif-bell-btn:hover { background: rgba(255,255,255,0.32); }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: #c94a4a; color: #fff; font-size: 0.62rem; font-weight: 700; min-width: 17px; height: 17px; border-radius: 10px; display: none; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #fff; line-height: 1; }
+        .notif-badge.show { display: flex; }
+        .notif-dropdown { display: none; position: absolute; top: 44px; right: 0; width: 340px; max-width: 92vw; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 200; overflow: hidden; }
+        .notif-dropdown.show { display: block; }
+        .notif-dropdown-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f0ebea; }
+        .notif-dropdown-head strong { color: #5a4a4a; font-size: 0.9rem; }
+        .notif-mark-all { background: none; border: none; color: #8a9b6e; font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 0; }
+        .notif-mark-all:hover { text-decoration: underline; }
+        .notif-list { max-height: 380px; overflow-y: auto; }
+        .notif-item { display: flex; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #f0ebea; text-decoration: none; color: inherit; align-items: flex-start; cursor: pointer; }
+        .notif-item:hover { background: #fdf7f8; }
+        .notif-item .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #d17b88; flex-shrink: 0; margin-top: 5px; }
+        .notif-item.read .notif-dot { background: transparent; }
+        .notif-item-title { font-size: 0.85rem; font-weight: 600; color: #5a4a4a; }
+        .notif-item-body { font-size: 0.78rem; color: #8a8a8a; margin-top: 1px; }
+        .notif-item-time { font-size: 0.7rem; color: #b0a8a8; margin-top: 2px; }
+        .notif-empty { text-align: center; padding: 26px 14px; color: #8a8a8a; font-size: 0.85rem; }
         .admin-body { display: flex; min-height: calc(100vh - 62px); }
         .admin-nav { width: 220px; background: #8a9b6e; padding: 18px 14px 30px; flex-shrink: 0; position: sticky; top: 62px; align-self: stretch; max-height: calc(100vh - 62px); overflow-y: auto; }
         .admin-nav-title { color: rgba(255,255,255,0.75); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 0 16px 12px; }
@@ -112,6 +132,22 @@
     <div class="admin-topbar">
         <h2>HappyStem Admin</h2>
         <div style="display:flex;gap:20px;align-items:center;">
+            <div class="notif-bell" id="adminNotifBell"
+                 data-unread-url="{{ route('admin.notifications.unread') }}"
+                 data-read-url="{{ route('admin.notifications.read') }}">
+                <button type="button" class="notif-bell-btn" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-badge" id="adminNotifBadge">0</span>
+                </button>
+                <div class="notif-dropdown" id="adminNotifDropdown">
+                    <div class="notif-dropdown-head">
+                        <strong>Notifications</strong>
+                        <button type="button" class="notif-mark-all" id="adminMarkAll">Mark all as read</button>
+                    </div>
+                    <div class="notif-list" id="adminNotifList"></div>
+                    <a href="{{ route('admin.dashboard', ['tab' => 'notifications']) }}" class="notif-view-all">View all notifications</a>
+                </div>
+            </div>
             <span style="font-size:0.85rem;"><i class="fas fa-user-shield"></i> {{ Auth::guard('admin')->user()->username }}</span>
             <form action="{{ route('admin.logout') }}" method="POST" style="margin:0;">
                 @csrf
@@ -124,7 +160,7 @@
 
     <div class="admin-body">
         <div class="admin-nav">
-            <div class="admin-nav-title">Menu</div>
+            <div class="admin-nav-title">Dashboard</div>
             <button class="tab-btn {{ $activeTab === 'products' ? 'active' : '' }}" data-tab="products"><i class="fas fa-store"></i> Products</button>
             <button class="tab-btn {{ $activeTab === 'customization' ? 'active' : '' }}" data-tab="customization"><i class="fas fa-magic"></i> Customization</button>
             <button class="tab-btn {{ $activeTab === 'categories' ? 'active' : '' }}" data-tab="categories"><i class="fas fa-tags"></i> Categories</button>
@@ -132,6 +168,8 @@
             <button class="tab-btn {{ $activeTab === 'payments' ? 'active' : '' }}" data-tab="payments"><i class="fas fa-money-check-alt"></i> Payments</button>
             <button class="tab-btn {{ $activeTab === 'orders' ? 'active' : '' }}" data-tab="orders"><i class="fas fa-box-open"></i> Orders</button>
             <button class="tab-btn {{ $activeTab === 'messages' ? 'active' : '' }}" data-tab="messages"><i class="fas fa-envelope"></i> Messages</button>
+            <button class="tab-btn {{ $activeTab === 'reviews' ? 'active' : '' }}" data-tab="reviews"><i class="fas fa-star"></i> Reviews</button>
+            <button class="tab-btn {{ $activeTab === 'notifications' ? 'active' : '' }}" data-tab="notifications"><i class="fas fa-bell"></i> Notifications</button>
             <button class="tab-btn {{ $activeTab === 'reports' ? 'active' : '' }}" data-tab="reports"><i class="fas fa-chart-line"></i> Reports</button>
         </div>
 
@@ -1132,7 +1170,7 @@
                                                 @csrf
                                                 <input type="hidden" name="action" value="update_order_status">
                                                 <input type="hidden" name="order_id" value="{{ $order->id }}">
-                                                <select name="new_status" onchange="saveDashboardState(); this.form.submit()" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;">
+                                                <select name="new_status" onchange="saveDashboardState(); this.form.submit()" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;" {{ in_array($order->order_status, ['delivered', 'cancelled']) ? 'disabled title="This status is final."' : '' }}>
                                                     @foreach (['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'] as $st)
                                                         <option value="{{ $st }}" @selected($order->order_status === $st)>{{ ucfirst($st) }}</option>
                                                     @endforeach
@@ -1179,6 +1217,26 @@
                             <strong>{{ $msg->name }}</strong> &lt;{{ $msg->email }}&gt;
                             <div class="msg-meta">{{ $msg->created_at }}</div>
                             <p style="margin-top:6px;">{{ $msg->message }}</p>
+
+                            @if ($msg->admin_reply)
+                                <div style="margin-top:10px;padding:10px 12px;background:#f2f6ec;border-radius:8px;border-left:3px solid #8a9b6e;font-size:0.85rem;">
+                                    <strong style="color:#6a7a55;">Your reply</strong>
+                                    @if ($msg->replied_at)
+                                        <span style="font-size:0.75rem;color:#8a8a8a;"> · {{ $msg->replied_at }}</span>
+                                    @endif
+                                    <div style="margin-top:4px;">{!! $msg->renderedReply() !!}</div>
+                                </div>
+                            @endif
+
+                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                                @csrf
+                                <input type="hidden" name="action" value="reply_message">
+                                <input type="hidden" name="message_id" value="{{ $msg->id }}">
+                                <input type="text" name="admin_reply" value="{{ $msg->admin_reply ?? '' }}" placeholder="Type a reply to send to the customer..."
+                                       style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.82rem;">
+                                <button type="submit" class="btn-sm btn-ok">{{ $msg->admin_reply ? 'Update Reply' : 'Send Reply' }}</button>
+                                <button type="button" class="btn-sm use-default-reply" data-reply="{{ $defaultReply }}" style="background:#f0e6e9;color:#a34d5c;">Use default reply</button>
+                            </form>
                         </div>
                     @empty
                         <p class="empty-row">No messages found.</p>
@@ -1188,6 +1246,151 @@
                             @for ($i = 1; $i <= $messagesTotalPages; $i++)
                                 <a href="{{ route('admin.dashboard', array_filter(['tab' => 'messages', 'message_search' => $messageSearch !== '' ? $messageSearch : null, 'mpage' => $i])) }}"
                                    class="{{ $i === $messagesPage ? 'active' : '' }}">{{ $i }}</a>
+                            @endfor
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ─────────── REVIEWS ─────────── --}}
+            <div class="tab-panel {{ $activeTab === 'reviews' ? 'active' : '' }}" id="tab-reviews">
+                <div class="card">
+                    <h3>Reviews ({{ $totalReviews }})</h3>
+                    <div class="filter-bar">
+                        <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'review_filter' => 'all'])) }}"
+                           class="btn-sm {{ ($reviewFilter ?? 'all') === 'all' ? 'btn-edit' : '' }}" style="text-decoration:none;color:#fff;padding:6px 14px;">All</a>
+                        <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'review_filter' => 'visible'])) }}"
+                           class="btn-sm {{ ($reviewFilter ?? '') === 'visible' ? 'btn-ok' : '' }}" style="text-decoration:none;color:#fff;padding:6px 14px;">Visible</a>
+                        <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'review_filter' => 'hidden'])) }}"
+                           class="btn-sm {{ ($reviewFilter ?? '') === 'hidden' ? 'btn-warn' : '' }}" style="text-decoration:none;color:#fff;padding:6px 14px;">Hidden</a>
+                    </div>
+                    @if ($reviews->isEmpty())
+                        <p class="empty-row">No reviews found.</p>
+                    @else
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Rating</th>
+                                    <th>Comment</th>
+                                    <th>Photos</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($reviews as $review)
+                                    <tr>
+                                        <td><strong>{{ $review->customer->full_name ?? 'Deleted' }}</strong></td>
+                                        <td>{{ $review->product->name ?? 'Deleted' }}</td>
+                                        <td style="color:#f5a623;white-space:nowrap;">
+                                            @for ($i = 1; $i <= 5; $i)<i class="fas fa-star{{ $i <= $review->rating ? '' : '-o' }}"></i>@endfor
+                                        </td>
+                                        <td style="max-width:220px;">
+                                            {{ \Illuminate\Support\Str::limit($review->comment ?? '', 100) }}
+                                        </td>
+                                        <td>
+                                            @if ($review->photos->isNotEmpty())
+                                                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                                                    @foreach ($review->photos as $photo)
+                                                        <img src="{{ asset('images/'.$photo->image_url) }}" alt="Review photo"
+                                                             style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:zoom-in;border:1px solid #eee;"
+                                                             onclick="window.open('{{ asset('images/'.$photo->image_url) }}','_blank')">
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span style="color:#aaa;">—</span>
+                                            @endif
+                                        </td>
+                                        <td style="font-size:0.8rem;white-space:nowrap;">{{ $review->created_at->format('M j, Y') }}</td>
+                                        <td>
+                                            @if ($review->is_visible)
+                                                <span class="badge badge-delivered">Visible</span>
+                                            @else
+                                                <span class="badge badge-cancelled">Hidden</span>
+                                            @endif
+                                        </td>
+                                        <td style="white-space:nowrap;">
+                                            @if ($review->is_visible)
+                                                <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                                    @csrf
+                                                    <input type="hidden" name="action" value="hide_review">
+                                                    <input type="hidden" name="review_id" value="{{ $review->id }}">
+                                                    <button type="submit" class="btn-sm btn-warn" title="Hide review"><i class="fas fa-eye-slash"></i></button>
+                                                </form>
+                                            @else
+                                                <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                                    @csrf
+                                                    <input type="hidden" name="action" value="show_review">
+                                                    <input type="hidden" name="review_id" value="{{ $review->id }}">
+                                                    <button type="submit" class="btn-sm btn-ok" title="Show review"><i class="fas fa-eye"></i></button>
+                                                </form>
+                                            @endif
+                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this review permanently?');">
+                                                @csrf
+                                                <input type="hidden" name="action" value="delete_review">
+                                                <input type="hidden" name="review_id" value="{{ $review->id }}">
+                                                <button type="submit" class="btn-sm btn-del" title="Delete review"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        @if ($reviewsTotalPages > 1)
+                            <div class="pagination">
+                                @for ($i = 1; $i <= $reviewsTotalPages; $i++)
+                                    <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'rpage' => $i, 'review_filter' => $reviewFilter ?? null])) }}"
+                                       class="{{ $i === $reviewsPage ? 'active' : '' }}">{{ $i }}</a>
+                                @endfor
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </div>
+
+            {{-- ─────────── NOTIFICATIONS ─────────── --}}
+            <div class="tab-panel {{ $activeTab === 'notifications' ? 'active' : '' }}" id="tab-notifications">
+                <div class="card">
+                    <h3>Notifications ({{ $totalNotifications }})</h3>
+                    @forelse ($notifications as $notification)
+                        @php
+                            $msgId = null;
+                            if ($notification->type === 'new_message' && preg_match('/^messages:(\d+)$/', (string) $notification->link, $m)) {
+                                $msgId = (int) $m[1];
+                            }
+                        @endphp
+                        <div class="msg-item">
+                            <strong>{{ $notification->title }}</strong>
+                            <span class="badge {{ $notification->is_read ? 'badge-delivered' : 'badge-pending' }}">{{ $notification->is_read ? 'Read' : 'Unread' }}</span>
+                            <div class="msg-meta">{{ $notification->created_at ? $notification->created_at->format('F j, Y g:i A') : '' }}</div>
+                            @if ($notification->body)
+                                <p style="margin-top:6px;">{{ $notification->body }}</p>
+                            @endif
+                            @if ($msgId)
+                                <button type="button" class="notif-reply-btn" style="margin-top:8px;background:var(--secondary);color:#fff;border:none;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:600;font-size:0.82rem;"><i class="fas fa-reply"></i> Reply</button>
+                                <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:none;margin-top:10px;padding:12px;background:#f9f6f4;border-radius:10px;" class="notif-reply-form">
+                                    @csrf
+                                    <input type="hidden" name="action" value="reply_message">
+                                    <input type="hidden" name="message_id" value="{{ $msgId }}">
+                                    <textarea name="admin_reply" rows="4" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;">{{ $defaultReply }}</textarea>
+                                    <div style="margin-top:8px;display:flex;gap:8px;">
+                                        <button type="submit" class="btn-sm btn-ok"><i class="fas fa-paper-plane"></i> Send Reply</button>
+                                        <button type="button" class="btn-sm notif-reply-cancel" style="background:#eee;color:#666;">Cancel</button>
+                                    </div>
+                                </form>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="empty-row">No notifications found.</p>
+                    @endforelse
+                    @if ($notificationsTotalPages > 1)
+                        <div class="pagination">
+                            @for ($i = 1; $i <= $notificationsTotalPages; $i++)
+                                <a href="{{ route('admin.dashboard', array_filter(['tab' => 'notifications', 'npage' => $i])) }}"
+                                   class="{{ $i === $notificationsPage ? 'active' : '' }}">{{ $i }}</a>
                             @endfor
                         </div>
                     @endif
@@ -1558,15 +1761,21 @@
 
     <script>
         function initAdmin() {
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            const btn = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
+            if (btn) btn.classList.add('active');
+            const panel = document.getElementById('tab-' + tab);
+            if (panel) panel.classList.add('active');
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', tab);
+            window.history.replaceState({}, '', url.toString());
+        }
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                this.classList.add('active');
-                document.getElementById('tab-' + this.dataset.tab).classList.add('active');
-                const url = new URL(window.location.href);
-                url.searchParams.set('tab', this.dataset.tab);
-                window.history.replaceState({}, '', url.toString());
+                switchTab(this.dataset.tab);
             });
         });
 
@@ -1853,7 +2062,160 @@
                 });
         };
 
+        // ── Admin notification bell ─────────────────────────────────────────
+        function initAdminNotifications() {
+            const bell = document.getElementById('adminNotifBell');
+            if (!bell) return;
+
+            const unreadUrl = bell.dataset.unreadUrl;
+            const readUrl = bell.dataset.readUrl;
+            const badge = document.getElementById('adminNotifBadge');
+            const dropdown = document.getElementById('adminNotifDropdown');
+            const list = document.getElementById('adminNotifList');
+            const btn = bell.querySelector('.notif-bell-btn');
+            const markAll = document.getElementById('adminMarkAll');
+
+            function render(data) {
+                badge.textContent = String(data.count || 0);
+                badge.classList.toggle('show', data.count > 0);
+
+                list.innerHTML = '';
+                if (!data.items || data.items.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'notif-empty';
+                    empty.textContent = 'No notifications.';
+                    list.appendChild(empty);
+                    return;
+                }
+
+                data.items.forEach(item => {
+                    const link = document.createElement('a');
+                    link.className = 'notif-item ' + (item.is_read ? 'read' : 'unread');
+                    link.href = '#';
+
+                    const dot = document.createElement('span');
+                    dot.className = 'notif-dot';
+
+                    const wrap = document.createElement('span');
+                    wrap.style.flex = '1';
+
+                    const title = document.createElement('div');
+                    title.className = 'notif-item-title';
+                    title.textContent = item.title || '';
+
+                    const body = document.createElement('div');
+                    body.className = 'notif-item-body';
+                    body.textContent = item.body || '';
+
+                    const time = document.createElement('div');
+                    time.className = 'notif-item-time';
+                    time.textContent = item.relative || item.created_at || '';
+
+                    wrap.appendChild(title);
+                    if (body.textContent) wrap.appendChild(body);
+                    wrap.appendChild(time);
+
+                    link.appendChild(dot);
+                    link.appendChild(wrap);
+
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        dropdown.classList.remove('show');
+                        fetch(readUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: new URLSearchParams({ notification_id: item.id })
+                        });
+                        handleAdminNotifLink(item.link);
+                    });
+
+                    list.appendChild(link);
+                });
+            }
+
+            function handleAdminNotifLink(link) {
+                if (!link) return;
+                if (link.indexOf('orders:') === 0 || link.indexOf('payments:') === 0) {
+                    const orderId = parseInt(link.split(':')[1], 10);
+                    if (orderId) {
+                        ['hs_scroll', 'hs_open_modal', 'hs_modal_scroll', 'hs_open_card'].forEach(k => sessionStorage.removeItem(k));
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('tab', 'orders');
+                        url.searchParams.set('order_id', String(orderId));
+                        window.location.href = url.toString();
+                    }
+                } else if (link.indexOf('messages') === 0) {
+                    switchTab('messages');
+                }
+            }
+
+            function refresh() {
+                fetch(unreadUrl)
+                    .then(r => r.json())
+                    .then(render)
+                    .catch(() => {});
+            }
+
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+                refresh();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!bell.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            markAll.addEventListener('click', function() {
+                fetch(readUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams()
+                }).then(refresh);
+            });
+
+            refresh();
+            setInterval(refresh, 15000);
+        }
+
         initAdmin();
         restoreDashboardState();
+        initAdminNotifications();
+
+        document.addEventListener('click', function(e) {
+            const replyBtn = e.target.closest('.notif-reply-btn');
+            if (replyBtn) {
+                const form = replyBtn.nextElementSibling;
+                if (form && form.classList.contains('notif-reply-form')) {
+                    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                }
+                return;
+            }
+            const cancelBtn = e.target.closest('.notif-reply-cancel');
+            if (cancelBtn) {
+                const form = cancelBtn.closest('.notif-reply-form');
+                if (form) form.style.display = 'none';
+                return;
+            }
+            const defaultBtn = e.target.closest('.use-default-reply');
+            if (defaultBtn) {
+                const input = defaultBtn.closest('form').querySelector('textarea[name="admin_reply"]');
+                if (input) input.value = defaultBtn.dataset.reply;
+                return;
+            }
+        });
+
+        const notifOrderParam = new URLSearchParams(window.location.search).get('order_id');
+        if (notifOrderParam) {
+            openOrderDetails(parseInt(notifOrderParam, 10));
+        }
     </script></body>
 </html>

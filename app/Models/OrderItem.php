@@ -21,4 +21,9 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class, 'product_id');
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'order_item_id');
+    }
 }

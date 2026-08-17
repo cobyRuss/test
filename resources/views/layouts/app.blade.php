@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'HappyStem | Flower Shop & Delivery in Bangued, Abra')</title>
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
     <link rel="icon" href="{{ asset('images/qqq.png') }}" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
@@ -27,6 +27,28 @@
         .cart-link { color: #fff; text-decoration: none; font-weight: 600; font-size: 0.9rem; padding: 7px 12px; border-radius: 20px; background: rgba(255,255,255,0.18); white-space: nowrap; }
         .cart-link:hover { background: rgba(255,255,255,0.3); }
         .nav-auth { display: flex; align-items: center; gap: 8px; }
+        .notif-bell { position: relative; }
+        .notif-bell-btn { background: rgba(255,255,255,0.18); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; position: relative; flex-shrink: 0; }
+        .notif-bell-btn:hover { background: rgba(255,255,255,0.3); }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 0.62rem; font-weight: 700; min-width: 17px; height: 17px; border-radius: 10px; display: none; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #fff; line-height: 1; }
+        .notif-badge.show { display: flex; }
+        .notif-dropdown { display: none; position: absolute; top: 44px; right: 0; width: 330px; max-width: 92vw; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); z-index: 200; overflow: hidden; }
+        .notif-dropdown.show { display: block; }
+        .notif-dropdown-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f0f0f0; }
+        .notif-dropdown-head strong { color: var(--dark); font-size: 0.9rem; }
+        .notif-mark-all { background: none; border: none; color: var(--accent); font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 0; }
+        .notif-mark-all:hover { text-decoration: underline; }
+        .notif-list { max-height: 360px; overflow-y: auto; }
+        .notif-item { display: flex; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #f6f3f3; text-decoration: none; color: inherit; align-items: flex-start; }
+        .notif-item:hover { background: #fdf7f8; }
+        .notif-item .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
+        .notif-item.read .notif-dot { background: transparent; }
+        .notif-item-title { font-size: 0.85rem; font-weight: 600; color: var(--dark); }
+        .notif-item-body { font-size: 0.78rem; color: var(--secondary); margin-top: 1px; }
+        .notif-item-time { font-size: 0.7rem; color: #8a8a8a; margin-top: 2px; }
+        .notif-empty { text-align: center; padding: 26px 14px; color: #8a8a8a; font-size: 0.85rem; }
+        .notif-view-all { display: block; text-align: center; padding: 10px; font-size: 0.8rem; font-weight: 600; color: var(--accent); text-decoration: none; border-top: 1px solid #f0f0f0; }
+        .notif-view-all:hover { background: #fdf7f8; }
         @media (max-width: 820px) {
             .header-right { flex-direction: column; width: 100%; }
             .nav-auth { width: 100%; justify-content: center; }
@@ -52,7 +74,7 @@
                             <li><a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'active' : '' }}">Shop</a></li>
                             <li><a href="{{ route('services.index') }}" class="{{ request()->routeIs('services.*') ? 'active' : '' }}">Services</a></li>
                             <li><a href="{{ route('customize.index') }}" class="{{ request()->routeIs('customize.*') ? 'active' : '' }}">Customize</a></li>
-                            <li><a href="{{ route('home') }}#contact" class="{{ session('contact_success') || session('contact_errors') ? 'active' : '' }}">Contact</a></li>
+                            <li><a href="#contact" class="{{ session('contact_success') || session('contact_errors') ? 'active' : '' }}">Contact</a></li>
                         </ul>
                     </nav>
 
@@ -74,6 +96,23 @@
                                 @csrf
                                 <button type="submit" class="cart-link" style="border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i> Logout</button>
                             </form>
+                            <div class="notif-bell" id="customerNotifBell"
+                                 data-unread-url="{{ route('notifications.unread') }}"
+                                 data-read-url="{{ route('notifications.read') }}"
+                                 data-view-all="{{ route('account.notifications') }}">
+                                <button type="button" class="notif-bell-btn" aria-label="Notifications">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="notif-badge" id="customerNotifBadge">0</span>
+                                </button>
+                                <div class="notif-dropdown" id="customerNotifDropdown">
+                                    <div class="notif-dropdown-head">
+                                        <strong>Notifications</strong>
+                                        <button type="button" class="notif-mark-all" id="customerMarkAll">Mark all as read</button>
+                                    </div>
+                                    <div class="notif-list" id="customerNotifList"></div>
+                                    <a href="{{ route('account.notifications') }}" class="notif-view-all">View all notifications</a>
+                                </div>
+                            </div>
                         @else
                             <a href="{{ route('login') }}" class="cart-link"><i class="fas fa-sign-in-alt"></i> Login</a>
                             <a href="{{ route('register') }}" class="cart-link"><i class="fas fa-user-plus"></i> Register</a>
@@ -88,7 +127,7 @@
         @yield('content')
     </main>
 
-    <footer>
+    <footer id="contact">
         <div class="container">
             <div class="footer-content">
                 <div class="footer-column">
@@ -117,6 +156,7 @@
                         <div class="contact-item"><i class="fas fa-map-marker-alt"></i> Bangued, Abra, Philippines</div>
                         <div class="contact-item"><i class="fas fa-phone"></i> 0917-123-4567</div>
                         <div class="contact-item"><i class="fas fa-envelope"></i> happystem.bangued@gmail.com</div>
+                        <button type="button" class="reveal-contact-btn" id="revealContactBtn"><i class="fas fa-paper-plane"></i> Send us a message</button>
                     </div>
                 </div>
             </div>
@@ -126,11 +166,6 @@
             </div>
         </div>
     </footer>
-
-    <div id="imageModal" class="modal">
-        <span class="close">&times;</span>
-        <img class="modal-content" id="enlargedImg">
-    </div>
 
     <div id="servicePhotosModal" class="service-photos-modal">
         <div class="service-photos-content">
@@ -150,14 +185,19 @@
             </div>
             <form class="contact-form" action="{{ route('contact.send') }}" method="POST">
                 @csrf
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" name="name" required>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" required>
-                </div>
+                @auth('web')
+                    <input type="hidden" name="name" value="{{ Auth::guard('web')->user()->full_name }}">
+                    <input type="hidden" name="email" value="{{ Auth::guard('web')->user()->email }}">
+                @else
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" required>
+                    </div>
+                @endauth
                 <div class="form-group">
                     <label>Message</label>
                     <textarea id="popup-message" name="message" rows="5" required></textarea>
@@ -167,7 +207,7 @@
         </div>
     </div>
 
-    <script src="{{ asset('js/main.js') }}"></script>
+    <script src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}"></script>
     @stack('scripts')
 </body>
 </html>

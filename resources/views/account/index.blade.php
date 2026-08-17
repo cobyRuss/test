@@ -43,6 +43,12 @@
                     <div style="background:#fff;border-radius:12px;padding:25px;box-shadow:0 8px 25px rgba(0,0,0,0.08);">
                         <h3 style="color:var(--secondary);margin-bottom:15px;">My Orders ({{ $orders->count() }})</h3>
 
+                        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                            <a href="{{ route('account.orders') }}" style="color:var(--secondary);font-weight:600;text-decoration:none;font-size:0.88rem;"><i class="fas fa-box-open"></i> All Orders</a>
+                            <a href="{{ route('account.notifications') }}" style="color:var(--secondary);font-weight:600;text-decoration:none;font-size:0.88rem;"><i class="fas fa-bell"></i> Notifications</a>
+                            <a href="{{ route('account.messages') }}" style="color:var(--secondary);font-weight:600;text-decoration:none;font-size:0.88rem;"><i class="fas fa-envelope"></i> Messages</a>
+                        </div>
+
                         @if ($orders->isEmpty())
                             <p style="color:var(--dark);">You haven't placed any orders yet.</p>
                             <a href="{{ route('products.index') }}" class="btn" style="margin-top:15px;">Start Shopping</a>

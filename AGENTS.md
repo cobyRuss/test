@@ -121,6 +121,23 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
 - Messages: `loadMessages(Request $request)` is paginated at **20/page** with a
   `message_search` filter (name/email/message LIKE) and `mpage` param. Orders are also
   paginated at **20/page** (`opage`). Pagination only renders when >1 page.
+- **Notifications** (2026-08-17): custom `notifications` table
+  (`recipient_type` admin|customer, `recipient_id`, `type`, `title`, `body`, `link`, `is_read`,
+  `read_at`), NOT Laravel's default `notifiable` morph table. Creation via
+  `App\Services\NotificationService` (`sendToAdmins`, `sendToCustomer`). Triggers: admin gets
+  new_order (checkout), payment_pending (GCash submitted), order_cancelled (customer cancel),
+  new_message (contact form); customer gets payment_confirmed/order_status (admin
+  verify/approve/decline/status/mark_paid) and admin_reply (new `reply_message` admin action —
+  `contact_messages` gained `customer_id`, `admin_reply`, `replied_at`; replies notify the
+  matching customer, resolved via `customer_id` then email). Polling endpoints (JSON
+  `{count,items}`, mark single or all read): admin `/admin/notifications/unread|read` (polls
+  every 15s), customer `/notifications/unread|read` (every 20s in `public/js/main.js`). Bell +
+  dropdown: admin topbar in `admin/dashboard.blade.php` (admin links are markers `orders:{id}` /
+  `payments:{id}` / `messages` handled by JS → `switchTab()` + `openOrderDetails()`); customer
+  navbar in `layouts/app.blade.php` `@auth('web')` block. History pages: `/account/notifications`
+  and `/account/messages` (marks all read on visit). **Chosen approach: HTTP polling, NOT
+  websockets** — near-real-time, zero infra, works on XAMPP/Apache; tradeoff is up to ~15-20s
+  latency vs true push (Pusher/Laravel Echo) which would need a broadcaster + external deps.
 - Payment: **GCash only, 100% paid upfront** — COD removed (2026-08-16). Checkout has only the
   GCash option; `orders.down_payment` = full total, `remaining_balance` = 0. GCash number +
   account name come from `config/happystem.php` (`GCASH_NUMBER`, `GCASH_ACCOUNT_NAME` in `.env`).

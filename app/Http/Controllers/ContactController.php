@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContactMessage;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class ContactController extends Controller
 {
@@ -33,11 +36,19 @@ class ContactController extends Controller
             return redirect()->route('home');
         }
 
-        ContactMessage::query()->create([
+        $contactMessage = ContactMessage::query()->create([
             'name' => $name,
             'email' => $email,
             'message' => $message,
+            'customer_id' => Auth::guard('web')->check() ? Auth::guard('web')->id() : null,
         ]);
+
+        NotificationService::sendToAdmins(
+            'new_message',
+            'New customer message',
+            $name.': '.Str::limit($message, 90),
+            'messages:'.$contactMessage->id
+        );
 
         session()->flash('contact_success', "Thank you for your message! We'll get back to you soon.");
 

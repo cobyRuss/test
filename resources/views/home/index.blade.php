@@ -39,7 +39,7 @@
             @else
                 <div class="catalogue">
                     @foreach ($products as $product)
-                        <div class="product-card {{ $product->is_available ? '' : 'is-unavailable' }}">
+                        <div class="product-card {{ $product->is_available ? '' : 'is-unavailable' }}" data-href="{{ route('products.show', $product->id) }}">
                             <div class="product-img">
                                 <img src="{{ asset('images/'.$product->image_url) }}" alt="{{ $product->name }}" loading="lazy">
                                 @if (! $product->is_available)
@@ -50,6 +50,9 @@
                                 <h3>{{ $product->name }}</h3>
                                 <p>{{ \Illuminate\Support\Str::limit($product->description, 80) }}</p>
                                 <div class="product-price">₱{{ number_format($product->price, 2) }}</div>
+                                @if ($product->review_count > 0)
+                                    <div style="color:#f5a623;font-size:0.8rem;">@for ($i = 1; $i <= 5; $i)<i class="fas fa-star{{ $i <= round($product->average_rating) ? '' : '-o' }}"></i>@endfor <span style="color:#aaa;">({{ $product->review_count }})</span></div>
+                                @endif
                                 <div class="product-actions">
                                     @if ($product->is_available)
                                         @auth('web')
@@ -70,9 +73,6 @@
                                     @else
                                         <span class="unavailable-btn"><i class="fas fa-exclamation-triangle"></i> Unavailable</span>
                                     @endif
-                                    <a class="buy-now-btn" href="{{ route('products.show', $product->id) }}" style="text-decoration:none;">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -149,13 +149,6 @@
         </div>
     </section>
 
-    <section class="contact" id="contact" style="padding: 80px 0; background: var(--light);">
-        <div class="container" style="max-width: 760px;">
-            <h2 class="section-title">Get in Touch</h2>
-            <p style="text-align:center;margin-bottom:30px;color:var(--dark);">
-                Have a question or want to place a special order? Send us a message!
-            </p>
-
             @if ($contactSuccess)
                 <div class="alert alert-success">{{ $contactSuccess }}</div>
             @endif
@@ -169,23 +162,6 @@
                     </ul>
                 </div>
             @endif
-
-            <form class="contact-form" action="{{ route('contact.send') }}" method="POST">
-                @csrf
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Your full name">
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="you@email.com">
-                </div>
-                <div class="form-group">
-                    <label>Message</label>
-                    <textarea name="message" rows="6" placeholder="How can we help you?">{{ old('message') }}</textarea>
-                </div>
-                <button type="submit" class="submit-btn" style="align-self:flex-start;"><i class="fas fa-paper-plane"></i> Send Message</button>
-            </form>
         </div>
     </section>
 @endsection

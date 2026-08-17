@@ -469,3 +469,44 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   `(!) Sorry, the maximum value is reached` (auto-hides after 2.5s). Custom arrangements
   (cart_id `custom`) keep the plain input — the cap is fixed products only.
 - Server-side cap is the source of truth; the stepper just prevents it from being hit.
+
+## Latest work (2026-08-17): Notifications System (admin + customer)
+
+- **Custom `notifications` table** (`recipient_type` admin|customer, `recipient_id`, `type`,
+  `title`, `body`, `link`, `is_read`, `read_at`, timestamps) + `App\Models\Notification`
+  scopes `forAdmin()/forCustomer()/unread()`. NOT Laravel's morph-based table.
+  `App\Services\NotificationService` has `sendToAdmins()` (loops all admin_users) and
+  `sendToCustomer()`.
+- **Admin triggers** (bell in `admin/dashboard.blade.php` topbar, before the username):
+  - `new_order` — `CheckoutController@store` (link marker `orders:{id}`)
+  - `payment_pending` — `GcashPaymentController@store` when GCash proof submitted (`payments:{id}`)
+  - `order_cancelled` — `OrderController@cancel` (customer-initiated cancel, `orders:{id}`)
+  - `new_message` — `ContactController@send` (`messages` → opens Messages tab)
+- **Customer triggers** (bell in `layouts/app.blade.php` navbar, only in `@auth('web')`):
+  - `payment_confirmed` / `order_status` — from admin `verify_gcash`, `mark_paid`,
+    `approve_order`, `decline_order`, `update_order_status` (link = order page)
+  - `admin_reply` — new admin action **`reply_message`** in the Messages tab. `contact_messages`
+    gained `customer_id`, `admin_reply`, `replied_at` (migration `2026_08_17_000002`). Replies
+    notify the customer (resolved via `customer_id`, falling back to `email` match). Customer
+    reads replies on the new `/account/messages` page.
+- **Polling endpoints** (return JSON `{count, items}`; POST marks single `notification_id` or all):
+  - Admin: `GET/POST /admin/notifications/unread|read` → `Admin\NotificationController`
+    (bell polls every **15s**)
+  - Customer: `GET/POST /notifications/unread|read` → `NotificationController`
+    (bell polls every **20s**, JS in `public/js/main.js` — URLs passed via `data-*` attributes
+    on the bell element because `main.js` uses relative fetches that break on nested pages)
+- **Admin bell links** are markers handled by inline JS: `orders:{id}` / `payments:{id}` →
+  `switchTab()` + `openOrderDetails(id)`; `messages` → `switchTab('messages')`. Dropdown has
+  badge count + "Mark all as read". Tab switching was extracted into a reusable `switchTab()`
+  function in the dashboard script.
+- **Customer UI**: bell badge + dropdown with "View all notifications" → `/account/notifications`
+  (history page, marks all read on visit). Account page has quick links to All Orders /
+  Notifications / Messages.
+- **Chosen approach: HTTP polling, not websockets.** Near-real-time (≤15–20s), zero infra,
+  works on XAMPP/Apache. Tradeoff vs true push: latency and a few extra requests; Pusher/Laravel
+  Echo would need a broadcaster + external deps for no real benefit in this app.
+- Migrations: `2026_08_17_000001_create_notifications_table`,
+  `2026_08_17_000002_add_reply_to_contact_messages_table` — both applied + `database.sql` regen'd.
+- Verified end-to-end with curl (admin + customer sessions): message → admin bell → reply →
+  customer bell → history/messages pages; full order round-trip (checkout → gcash → verify →
+  approve) producing all 4 admin + 3 customer notification types. Test data cleaned up.

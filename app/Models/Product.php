@@ -23,6 +23,27 @@ class Product extends Model
             ->withPivot('quantity');
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'product_id');
+    }
+
+    public function getAverageRatingAttribute(): ?float
+    {
+        $visible = $this->reviews->filter(fn ($r) => $r->is_visible);
+
+        if ($visible->isEmpty()) {
+            return null;
+        }
+
+        return round($visible->avg('rating'), 1);
+    }
+
+    public function getReviewCountAttribute(): int
+    {
+        return $this->reviews->filter(fn ($r) => $r->is_visible)->count();
+    }
+
     public function getIsAvailableAttribute(): bool
     {
         if (! $this->is_active) {
