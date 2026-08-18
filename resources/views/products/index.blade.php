@@ -44,9 +44,6 @@
                                 <h3>{{ $product->name }}</h3>
                                 <p>{{ \Illuminate\Support\Str::limit($product->description, 80) }}</p>
                                 <div class="product-price">₱{{ number_format($product->price, 2) }}</div>
-                                @if ($product->review_count > 0)
-                                    <div style="color:#f5a623;font-size:0.8rem;">@for ($i = 1; $i <= 5; $i)<i class="fas fa-star{{ $i <= round($product->average_rating) ? '' : '-o' }}"></i>@endfor <span style="color:#aaa;">({{ $product->review_count }})</span></div>
-                                @endif
                                 <div class="product-actions">
                                     @if ($product->is_available)
                                         @auth('web')

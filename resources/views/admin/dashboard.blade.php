@@ -168,7 +168,6 @@
             <button class="tab-btn {{ $activeTab === 'payments' ? 'active' : '' }}" data-tab="payments"><i class="fas fa-money-check-alt"></i> Payments</button>
             <button class="tab-btn {{ $activeTab === 'orders' ? 'active' : '' }}" data-tab="orders"><i class="fas fa-box-open"></i> Orders</button>
             <button class="tab-btn {{ $activeTab === 'messages' ? 'active' : '' }}" data-tab="messages"><i class="fas fa-envelope"></i> Messages</button>
-            <button class="tab-btn {{ $activeTab === 'reviews' ? 'active' : '' }}" data-tab="reviews"><i class="fas fa-star"></i> Reviews</button>
             <button class="tab-btn {{ $activeTab === 'notifications' ? 'active' : '' }}" data-tab="notifications"><i class="fas fa-bell"></i> Notifications</button>
             <button class="tab-btn {{ $activeTab === 'reports' ? 'active' : '' }}" data-tab="reports"><i class="fas fa-chart-line"></i> Reports</button>
         </div>
@@ -1248,105 +1247,6 @@
                                    class="{{ $i === $messagesPage ? 'active' : '' }}">{{ $i }}</a>
                             @endfor
                         </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- ─────────── REVIEWS ─────────── --}}
-            <div class="tab-panel {{ $activeTab === 'reviews' ? 'active' : '' }}" id="tab-reviews">
-                <div class="card">
-                    <h3>Reviews ({{ $totalReviews }})</h3>
-                    <div class="filter-bar">
-                        <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'review_filter' => 'all'])) }}"
-                           class="btn-sm {{ ($reviewFilter ?? 'all') === 'all' ? 'btn-edit' : '' }}" style="text-decoration:none;color:#fff;padding:6px 14px;">All</a>
-                        <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'review_filter' => 'visible'])) }}"
-                           class="btn-sm {{ ($reviewFilter ?? '') === 'visible' ? 'btn-ok' : '' }}" style="text-decoration:none;color:#fff;padding:6px 14px;">Visible</a>
-                        <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'review_filter' => 'hidden'])) }}"
-                           class="btn-sm {{ ($reviewFilter ?? '') === 'hidden' ? 'btn-warn' : '' }}" style="text-decoration:none;color:#fff;padding:6px 14px;">Hidden</a>
-                    </div>
-                    @if ($reviews->isEmpty())
-                        <p class="empty-row">No reviews found.</p>
-                    @else
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Customer</th>
-                                    <th>Product</th>
-                                    <th>Rating</th>
-                                    <th>Comment</th>
-                                    <th>Photos</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($reviews as $review)
-                                    <tr>
-                                        <td><strong>{{ $review->customer->full_name ?? 'Deleted' }}</strong></td>
-                                        <td>{{ $review->product->name ?? 'Deleted' }}</td>
-                                        <td style="color:#f5a623;white-space:nowrap;">
-                                            @for ($i = 1; $i <= 5; $i)<i class="fas fa-star{{ $i <= $review->rating ? '' : '-o' }}"></i>@endfor
-                                        </td>
-                                        <td style="max-width:220px;">
-                                            {{ \Illuminate\Support\Str::limit($review->comment ?? '', 100) }}
-                                        </td>
-                                        <td>
-                                            @if ($review->photos->isNotEmpty())
-                                                <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                                                    @foreach ($review->photos as $photo)
-                                                        <img src="{{ asset('images/'.$photo->image_url) }}" alt="Review photo"
-                                                             style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:zoom-in;border:1px solid #eee;"
-                                                             onclick="window.open('{{ asset('images/'.$photo->image_url) }}','_blank')">
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <span style="color:#aaa;">—</span>
-                                            @endif
-                                        </td>
-                                        <td style="font-size:0.8rem;white-space:nowrap;">{{ $review->created_at->format('M j, Y') }}</td>
-                                        <td>
-                                            @if ($review->is_visible)
-                                                <span class="badge badge-delivered">Visible</span>
-                                            @else
-                                                <span class="badge badge-cancelled">Hidden</span>
-                                            @endif
-                                        </td>
-                                        <td style="white-space:nowrap;">
-                                            @if ($review->is_visible)
-                                                <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
-                                                    @csrf
-                                                    <input type="hidden" name="action" value="hide_review">
-                                                    <input type="hidden" name="review_id" value="{{ $review->id }}">
-                                                    <button type="submit" class="btn-sm btn-warn" title="Hide review"><i class="fas fa-eye-slash"></i></button>
-                                                </form>
-                                            @else
-                                                <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
-                                                    @csrf
-                                                    <input type="hidden" name="action" value="show_review">
-                                                    <input type="hidden" name="review_id" value="{{ $review->id }}">
-                                                    <button type="submit" class="btn-sm btn-ok" title="Show review"><i class="fas fa-eye"></i></button>
-                                                </form>
-                                            @endif
-                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this review permanently?');">
-                                                @csrf
-                                                <input type="hidden" name="action" value="delete_review">
-                                                <input type="hidden" name="review_id" value="{{ $review->id }}">
-                                                <button type="submit" class="btn-sm btn-del" title="Delete review"><i class="fas fa-trash"></i></button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        @if ($reviewsTotalPages > 1)
-                            <div class="pagination">
-                                @for ($i = 1; $i <= $reviewsTotalPages; $i++)
-                                    <a href="{{ route('admin.dashboard', array_filter(['tab' => 'reviews', 'rpage' => $i, 'review_filter' => $reviewFilter ?? null])) }}"
-                                       class="{{ $i === $reviewsPage ? 'active' : '' }}">{{ $i }}</a>
-                                @endfor
-                            </div>
-                        @endif
                     @endif
                 </div>
             </div>

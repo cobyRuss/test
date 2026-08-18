@@ -15,9 +15,7 @@ class HomeController extends Controller
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query()->with(['flowerVariants', 'reviews' => function ($q) {
-            $q->where('is_visible', true);
-        }]);
+        $query = Product::query()->with(['flowerVariants']);
 
         if ($category !== 'all') {
             $query->whereHas('categories', function ($q) use ($category) {

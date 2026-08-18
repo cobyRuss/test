@@ -18,7 +18,6 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SavedCustomizationController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServicePhotoController;
-use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -73,10 +72,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
     Route::post('/notifications/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 
-    Route::post('/products/{id}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
-    Route::put('/reviews/{id}', [ReviewController::class, 'update'])->name('reviews.update');
-    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
-    Route::delete('/reviews/photo/{id}', [ReviewController::class, 'deletePhoto'])->name('reviews.deletePhoto');
 });
 
 Route::prefix('admin')->group(function () {

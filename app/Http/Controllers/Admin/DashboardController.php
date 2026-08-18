@@ -13,8 +13,6 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductCategory;
-use App\Models\Review;
-use App\Models\ReviewPhoto;
 use App\Models\ServicePhoto;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -52,7 +50,6 @@ class DashboardController extends Controller
         $data = array_merge($data, $this->loadReports($request));
         $data = array_merge($data, $this->loadCustomizationOptions($request));
         $data = array_merge($data, $this->loadNotifications($request));
-        $data = array_merge($data, $this->loadReviews($request));
 
         return view('admin.dashboard', $data);
     }
@@ -607,52 +604,6 @@ class DashboardController extends Controller
                     }
                     session(['active_tab' => 'messages']);
                     break;
-
-                case 'hide_review':
-                    $review = Review::query()->find((int) $request->input('review_id'));
-                    if ($review) {
-                        $review->update(['is_visible' => false]);
-                        NotificationService::sendToCustomer(
-                            $review->customer_id,
-                            'review_hidden',
-                            'Your review has been hidden',
-                            'Your review for "'.$review->product->name.'" has been hidden by the admin.',
-                            ''
-                        );
-                        $message = 'Review hidden.';
-                    } else {
-                        $message = 'Review not found.';
-                    }
-                    session(['active_tab' => 'reviews']);
-                    break;
-
-                case 'show_review':
-                    $review = Review::query()->find((int) $request->input('review_id'));
-                    if ($review) {
-                        $review->update(['is_visible' => true]);
-                        $message = 'Review is now visible.';
-                    } else {
-                        $message = 'Review not found.';
-                    }
-                    session(['active_tab' => 'reviews']);
-                    break;
-
-                case 'delete_review':
-                    $review = Review::query()->find((int) $request->input('review_id'));
-                    if ($review) {
-                        foreach ($review->photos as $photo) {
-                            $path = public_path('images/'.$photo->image_url);
-                            if (file_exists($path)) {
-                                unlink($path);
-                            }
-                        }
-                        $review->delete();
-                        $message = 'Review deleted permanently.';
-                    } else {
-                        $message = 'Review not found.';
-                    }
-                    session(['active_tab' => 'reviews']);
-                    break;
         }
 
         if ($activeTab) {
@@ -954,32 +905,6 @@ class DashboardController extends Controller
         $defaultReply = ContactMessage::DEFAULT_REPLY;
 
         return compact('notifications', 'totalNotifications', 'notificationsTotalPages', 'notificationsPage', 'defaultReply');
-    }
-
-    private function loadReviews(Request $request): array
-    {
-        $reviewsPage = max(1, (int) $request->query('rpage', 1));
-        $reviewsPerPage = 20;
-        $reviewFilter = $request->query('review_filter', 'all');
-
-        $query = Review::query()->with('customer', 'product', 'photos');
-
-        if ($reviewFilter === 'visible') {
-            $query->where('is_visible', true);
-        } elseif ($reviewFilter === 'hidden') {
-            $query->where('is_visible', false);
-        }
-
-        $totalReviews = (clone $query)->count();
-        $reviewsTotalPages = max(1, (int) ceil($totalReviews / $reviewsPerPage));
-
-        $reviews = (clone $query)
-            ->orderByDesc('created_at')
-            ->offset(($reviewsPage - 1) * $reviewsPerPage)
-            ->limit($reviewsPerPage)
-            ->get();
-
-        return compact('reviews', 'totalReviews', 'reviewsTotalPages', 'reviewsPage', 'reviewFilter');
     }
 
     private function loadMessages(Request $request): array

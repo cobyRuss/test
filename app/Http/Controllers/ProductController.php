@@ -4,10 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
-use App\Models\Review;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -18,9 +15,7 @@ class ProductController extends Controller
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query()->with(['flowerVariants', 'reviews' => function ($q) {
-            $q->where('is_visible', true);
-        }]);
+        $query = Product::query()->with(['flowerVariants']);
 
         if ($category !== 'all') {
             $query->whereHas('categories', function ($q) use ($category) {
@@ -66,40 +61,7 @@ class ProductController extends Controller
             ->limit(4)
             ->get();
 
-        $product->load(['reviews' => function ($q) {
-            $q->where('is_visible', true)->with('customer', 'photos')->orderByDesc('created_at');
-        }]);
-
-        $reviews = $product->reviews;
-
-        $existingReview = null;
-        $eligibleOrderItems = collect();
-        $canReview = false;
-
-        $customer = Auth::guard('web')->user();
-
-        if ($customer && $product->is_available) {
-            $existingReview = Review::where('customer_id', $customer->id)
-                ->where('product_id', $product->id)
-                ->first();
-
-            if (! $existingReview) {
-                $eligibleOrderItems = DB::table('order_items as oi')
-                    ->join('orders as o', 'o.id', '=', 'oi.order_id')
-                    ->where('oi.product_id', $product->id)
-                    ->where('o.customer_id', $customer->id)
-                    ->where('o.order_status', 'delivered')
-                    ->select('oi.id', 'oi.product_name')
-                    ->get();
-
-                $canReview = $eligibleOrderItems->isNotEmpty();
-            }
-        }
-
-        return view('products.show', compact(
-            'product', 'related', 'reviews',
-            'existingReview', 'eligibleOrderItems', 'canReview'
-        ));
+        return view('products.show', compact('product', 'related'));
     }
 
     private function categoryAvailability(): array
