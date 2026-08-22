@@ -17,6 +17,7 @@ class GcashPayment extends Model
         'payment_type',
         'screenshot_path',
         'verified',
+        'status',
         'verified_by',
         'verified_at',
     ];

@@ -53,6 +53,11 @@
                     </div>
                     <button type="submit" class="btn" style="width:100%;text-align:center;"><i class="fas fa-check-circle"></i> Submit Payment</button>
                 </form>
+
+                <form action="{{ route('orders.gcash.cancel', $order->id) }}" method="POST" style="margin-top:12px;" onsubmit="return confirm('Cancel this order and return items to cart?');">
+                    @csrf
+                    <button type="submit" class="btn" style="width:100%;text-align:center;background:#c94a4a;"><i class="fas fa-times-circle"></i> Cancel &amp; Return to Cart</button>
+                </form>
             @endif
         </div>
     </section>

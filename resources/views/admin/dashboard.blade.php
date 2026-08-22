@@ -169,15 +169,16 @@
             <button class="tab-btn {{ $activeTab === 'orders' ? 'active' : '' }}" data-tab="orders"><i class="fas fa-box-open"></i> Orders</button>
             <button class="tab-btn {{ $activeTab === 'messages' ? 'active' : '' }}" data-tab="messages"><i class="fas fa-envelope"></i> Messages</button>
             <button class="tab-btn {{ $activeTab === 'notifications' ? 'active' : '' }}" data-tab="notifications"><i class="fas fa-bell"></i> Notifications</button>
+            <button class="tab-btn {{ $activeTab === 'activity' ? 'active' : '' }}" data-tab="activity"><i class="fas fa-history"></i> Activity Log</button>
             <button class="tab-btn {{ $activeTab === 'reports' ? 'active' : '' }}" data-tab="reports"><i class="fas fa-chart-line"></i> Reports</button>
         </div>
 
         <div class="admin-content">
             @if (session('message'))
-                <div class="alert alert-success">{{ session('message') }}</div>
+                <div class="alert alert-success" data-autohide="1">{{ session('message') }}</div>
             @endif
             @if (session('error'))
-                <div class="alert" style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c2;">{{ session('error') }}</div>
+                <div class="alert" data-autohide="1" style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c2;">{{ session('error') }}</div>
             @endif
             @if ($errors->any())
                 <div class="alert" style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c2;">
@@ -514,8 +515,6 @@
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-lg" type="text" data-field="display_name" value="{{ $flower->display_name }}" title="Click to edit display name">
-                                            <br>
-                                            <input class="inline-edit inline-edit-sm" type="text" data-field="name" value="{{ $flower->name }}" title="Click to edit name">
                                         </td>
                                         <td>
                                             <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" data-field="price" value="{{ $flower->price }}" title="Click to edit price">
@@ -575,7 +574,6 @@
                                 </div>
                                 <div><label>Name (e.g. Red / Large)</label><input type="text" name="display_name" required></div>
                                 <div><label>Price (₱, 0 = keep base)</label><input type="number" step="0.01" min="0" name="price" value="0"></div>
-                                <div class="variant-hex-field"><label>Hex Color (for colors)</label><input type="text" name="hex_color" placeholder="#ff5733"></div>
                                 <div><label>Photo (sizes; or pattern image for colors)</label><input type="file" name="image" accept="image/*"></div>
                                 <div><label>Sort Order</label><input type="number" min="0" name="sort_order" value="0"></div>
                                 <div>
@@ -590,7 +588,7 @@
                         </form>
 
                         <table class="admin-table" style="margin-top:16px;">
-                            <thead><tr><th></th><th>Flower</th><th>Type</th><th>Name</th><th>Price</th><th>Color / Image</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
+                            <thead><tr><th></th><th>Flower</th><th>Type</th><th>Name</th><th>Price</th><th>Sort</th><th>Active</th><th>Actions</th></tr></thead>
                             <tbody>
                                 @forelse ($flowerVariantsPaged as $variant)
                                     <tr class="variant-edit-row edit-row" data-id="{{ $variant->id }}"
@@ -599,8 +597,6 @@
                                         <td>
                                             @if ($variant->image_url)
                                                 <img class="photo-thumb" data-input="variant-edit-image" src="{{ asset('images/'.$variant->image_url) }}" alt="" title="Click to enlarge / replace">
-                                            @elseif ($variant->variant_type === 'color' && $variant->hex_color)
-                                                <div class="photo-swatch" data-hex="{{ $variant->hex_color }}" data-input="variant-edit-image" title="Click to edit photo"></div>
                                             @else
                                                 <i class="fas fa-circle photo-thumb photo-thumb-placeholder" data-input="variant-edit-image" title="Click to add photo"></i>
                                             @endif
@@ -609,20 +605,9 @@
                                         <td>{{ ucfirst($variant->variant_type) }}</td>
                                         <td>
                                             <input class="inline-edit inline-edit-lg" type="text" data-field="display_name" value="{{ $variant->display_name }}" title="Click to edit name">
-                                            <br>
-                                            <input class="inline-edit inline-edit-sm" type="text" data-field="hex_color" value="{{ $variant->hex_color }}" placeholder="#ff5733" title="Click to edit hex (colors)">
                                         </td>
                                         <td>
                                             <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" data-field="price" value="{{ $variant->price }}" title="Click to edit price">
-                                        </td>
-                                        <td>
-                                            @if ($variant->image_url)
-                                                <img src="{{ asset('images/'.$variant->image_url) }}" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid #ddd;vertical-align:middle;">
-                                            @elseif ($variant->variant_type === 'color' && $variant->hex_color)
-                                                <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:{{ $variant->hex_color }};border:2px solid #ddd;vertical-align:middle;"></span>
-                                            @else
-                                                <span style="color:#aaa;font-size:0.8rem;">—</span>
-                                            @endif
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-num" type="number" min="0" data-field="sort_order" value="{{ $variant->sort_order }}" title="Click to edit sort order">
@@ -639,7 +624,7 @@
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="9" class="empty-row">No flower variants yet.</td></tr>
+                                    <tr><td colspan="7" class="empty-row">No flower variants yet.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -691,8 +676,6 @@
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-lg" type="text" data-field="display_name" value="{{ $filler->display_name }}" title="Click to edit display name">
-                                            <br>
-                                            <input class="inline-edit inline-edit-sm" type="text" data-field="name" value="{{ $filler->name }}" title="Click to edit name">
                                         </td>
                                         <td>
                                             <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" data-field="price" value="{{ $filler->price }}" title="Click to edit price">
@@ -769,8 +752,6 @@
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-lg" type="text" data-field="display_name" value="{{ $color->display_name }}" title="Click to edit display name">
-                                            <br>
-                                            <input class="inline-edit inline-edit-sm" type="text" data-field="name" value="{{ $color->name }}" title="Click to edit name">
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-sm" type="text" data-field="hex_color" value="{{ $color->hex_color }}" placeholder="#ff5733" title="Click to edit hex color">
@@ -843,8 +824,6 @@
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-lg" type="text" data-field="display_name" value="{{ $ribbon->display_name }}" title="Click to edit display name">
-                                            <br>
-                                            <input class="inline-edit inline-edit-sm" type="text" data-field="name" value="{{ $ribbon->name }}" title="Click to edit name">
                                         </td>
                                         <td>
                                             <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" data-field="price" value="{{ $ribbon->price }}" title="Click to edit price">
@@ -1018,8 +997,6 @@
                                         </td>
                                         <td>
                                             <input class="inline-edit inline-edit-lg" type="text" data-field="display_name" value="{{ $style->display_name }}" title="Click to edit display name">
-                                            <br>
-                                            <input class="inline-edit inline-edit-sm" type="text" data-field="name" value="{{ $style->name }}" title="Click to edit name">
                                         </td>
                                         <td>
                                             <span class="money">₱</span><input class="inline-edit inline-edit-num" type="number" step="0.01" min="0" data-field="price" value="{{ $style->price }}" title="Click to edit price">
@@ -1058,11 +1035,28 @@
             {{-- ─────────── PAYMENTS ─────────── --}}
             <div class="tab-panel {{ $activeTab === 'payments' ? 'active' : '' }}" id="tab-payments">
                 <div class="card">
-                    <h3>Pending GCash Payments ({{ $pendingPayments->count() }})</h3>
+                    <h3>GCash Payment History <span style="font-size:0.85rem;color:#8a8a8a;font-weight:normal;">({{ $totalPayments }} {{ $paymentFilter === 'all' ? 'total' : $paymentFilter }})</span></h3>
+                    @php
+                        $paymentStatusLabels = ['pending' => 'Pending', 'verified' => 'Verified', 'declined' => 'Declined'];
+                        $paymentStatusBadges = ['pending' => 'badge-pending', 'verified' => 'badge-delivered', 'declined' => 'badge-cancelled'];
+                    @endphp
+                    <form method="GET" action="{{ route('admin.dashboard') }}" class="filter-bar">
+                        <input type="hidden" name="tab" value="payments">
+                        <select name="payment_filter">
+                            <option value="all" @selected($paymentFilter === 'all')>All payments ({{ array_sum($paymentStatusCounts) }})</option>
+                            @foreach (['pending', 'verified', 'declined'] as $pf)
+                                <option value="{{ $pf }}" @selected($paymentFilter === $pf)>{{ ucfirst($pf) }} ({{ $paymentStatusCounts[$pf] ?? 0 }})</option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="btn-sm btn-verify">Filter</button>
+                        @if ($pendingPaymentCount > 0)
+                            <span style="font-size:0.8rem;color:#b5651d;">⏳ {{ $pendingPaymentCount }} waiting for verification</span>
+                        @endif
+                    </form>
                     <table class="admin-table">
-                        <thead><tr><th>Order</th><th>Customer</th><th>Ref #</th><th>Amount</th><th>Screenshot</th><th>Date</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Order</th><th>Customer</th><th>Ref #</th><th>Amount</th><th>Screenshot</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                         <tbody>
-                            @forelse ($pendingPayments as $payment)
+                            @forelse ($payments as $payment)
                                 <tr>
                                     <td><a href="{{ route('orders.show', $payment->order_id) }}" style="color:var(--accent);font-weight:600;">{{ $payment->order_number }}</a></td>
                                     <td>{{ $payment->full_name }}<br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $payment->email }}</span></td>
@@ -1078,22 +1072,49 @@
                                             <span style="color:#8a8a8a;">None</span>
                                         @endif
                                     </td>
+                                    <td>
+                                        <span class="badge {{ $paymentStatusBadges[$payment->status] ?? 'badge-pending' }}">{{ $paymentStatusLabels[$payment->status] ?? ucfirst($payment->status) }}</span>
+                                        @if ($payment->status !== 'pending')
+                                            <br><span style="font-size:0.72rem;color:#8a8a8a;">{{ $payment->verified_at }}</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $payment->created_at }}</td>
                                     <td>
-                                        <form action="{{ route('admin.dashboard.post') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="action" value="verify_gcash">
-                                            <input type="hidden" name="payment_id" value="{{ $payment->id }}">
-                                            <input type="hidden" name="order_id" value="{{ $payment->order_id }}">
-                                            <button type="submit" class="btn-sm btn-ok" onclick="return confirm('Verify this payment?');">Verify</button>
-                                        </form>
+                                        @if ($payment->status === 'pending')
+                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                <input type="hidden" name="action" value="verify_gcash">
+                                                <input type="hidden" name="payment_id" value="{{ $payment->id }}">
+                                                <input type="hidden" name="order_id" value="{{ $payment->order_id }}">
+                                                <button type="submit" class="btn-sm btn-ok" onclick="return confirm('Verify this payment? The order will be confirmed.');">Verify</button>
+                                            </form>
+                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                <input type="hidden" name="action" value="decline_gcash">
+                                                <input type="hidden" name="payment_id" value="{{ $payment->id }}">
+                                                <input type="hidden" name="order_id" value="{{ $payment->order_id }}">
+                                                <button type="submit" class="btn-sm btn-del" onclick="return confirm('Decline this payment? The order will be cancelled.');">Decline</button>
+                                            </form>
+                                        @else
+                                            <button type="button" class="btn-sm btn-ok" disabled style="opacity:0.45;cursor:not-allowed;" title="This payment was already {{ $payment->status }}">Verify</button>
+                                            <button type="button" class="btn-sm btn-del" disabled style="opacity:0.45;cursor:not-allowed;" title="This payment was already {{ $payment->status }}">Decline</button>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="empty-row">No pending payments.</td></tr>
+                                <tr><td colspan="8" class="empty-row">No payments found.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
+
+                    @if ($paymentsTotalPages > 1)
+                        <div class="pagination">
+                            @for ($i = 1; $i <= $paymentsTotalPages; $i++)
+                                <a href="{{ route('admin.dashboard', array_filter(['tab' => 'payments', 'payment_filter' => $paymentFilter !== 'all' ? $paymentFilter : null, 'ppage' => $i])) }}"
+                                   class="{{ $i === $paymentsPage ? 'active' : '' }}">{{ $i }}</a>
+                            @endfor
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -1149,38 +1170,26 @@
                                         <td><span class="badge badge-{{ $order->order_status }}">{{ ucfirst($order->order_status) }}</span></td>
                                         <td>{{ $order->delivery_date }}<br><span style="font-size:0.78rem;color:#8a8a8a;">{{ $order->municipality }}</span></td>
                                         <td style="min-width:180px;">
-                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:flex;gap:6px;flex-wrap:wrap;">
-                                                @csrf
-                                                @if ($order->order_status === 'pending')
-                                                    <input type="hidden" name="action" value="approve_order">
-                                                    <input type="hidden" name="order_id" value="{{ $order->id }}">
-                                                    <button type="submit" class="btn-sm btn-ok">Approve</button>
-                                                @endif
-                                            </form>
-                                            @if ($order->order_status === 'pending')
+                                            @if ($order->payment_status === 'partial')
+                                                <span class="badge badge-confirmed" title="A GCash payment was submitted — verify or decline it from the Payments tab.">⏳ Waiting for verification</span>
+                                            @else
                                                 <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
                                                     @csrf
-                                                    <input type="hidden" name="action" value="decline_order">
+                                                    <input type="hidden" name="action" value="update_order_status">
                                                     <input type="hidden" name="order_id" value="{{ $order->id }}">
-                                                    <button type="submit" class="btn-sm btn-del" onclick="return confirm('Decline this order?');">Decline</button>
-                                                </form>
-                                            @endif
-                                            <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;margin-left:6px;">
-                                                @csrf
-                                                <input type="hidden" name="action" value="update_order_status">
-                                                <input type="hidden" name="order_id" value="{{ $order->id }}">
-                                                <select name="new_status" onchange="saveDashboardState(); this.form.submit()" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;" {{ in_array($order->order_status, ['delivered', 'cancelled']) ? 'disabled title="This status is final."' : '' }}>
-                                                    @foreach (['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'] as $st)
-                                                        <option value="{{ $st }}" @selected($order->order_status === $st)>{{ ucfirst($st) }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </form>
-                                            @if ($order->payment_status !== 'completed')
-                                                <form action="{{ route('admin.dashboard.post') }}" method="POST" style="display:inline;">
-                                                    @csrf
-                                                    <input type="hidden" name="action" value="mark_paid">
-                                                    <input type="hidden" name="order_id" value="{{ $order->id }}">
-                                                    <button type="submit" class="btn-sm btn-ok" onclick="return confirm('Mark as fully paid?');">Mark Paid</button>
+                                                    @php
+                                                        $dropdownStatuses = $order->order_status === 'cancelled'
+                                                            ? ['cancelled']
+                                                            : ($order->payment_status === 'completed'
+                                                                ? ['confirmed', 'preparing', 'ready', 'delivered']
+                                                                : ['confirmed', 'preparing', 'ready', 'delivered', 'cancelled']);
+                                                        $isDropdownLocked = $order->order_status === 'cancelled' || $order->order_status === 'delivered';
+                                                    @endphp
+                                                    <select name="new_status" onchange="saveDashboardState(); this.form.submit()" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:0.8rem;" {{ $isDropdownLocked ? 'disabled title="This status is final."' : '' }}>
+                                                        @foreach ($dropdownStatuses as $st)
+                                                            <option value="{{ $st }}" @selected($order->order_status === $st)>{{ ucfirst($st) }}</option>
+                                                        @endforeach
+                                                    </select>
                                                 </form>
                                             @endif
                                         </td>
@@ -1291,6 +1300,38 @@
                             @for ($i = 1; $i <= $notificationsTotalPages; $i++)
                                 <a href="{{ route('admin.dashboard', array_filter(['tab' => 'notifications', 'npage' => $i])) }}"
                                    class="{{ $i === $notificationsPage ? 'active' : '' }}">{{ $i }}</a>
+                            @endfor
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ─────────── ACTIVITY LOG ─────────── --}}
+            <div class="tab-panel {{ $activeTab === 'activity' ? 'active' : '' }}" id="tab-activity">
+                <div class="card">
+                    <h3>Activity Log ({{ $totalActivity }})</h3>
+                    <p style="font-size:0.8rem;color:#8a8a8a;margin:-6px 0 12px;">Record of every change made in the admin panel — newest first.</p>
+                    <table class="admin-table">
+                        <thead><tr><th>Date &amp; Time</th><th>Admin</th><th>Action</th><th>Details</th></tr></thead>
+                        <tbody>
+                            @forelse ($activityLogs as $log)
+                                <tr>
+                                    <td style="white-space:nowrap;">{{ $log->created_at ? date('M j, Y g:i A', strtotime($log->created_at)) : '' }}</td>
+                                    <td>{{ $log->username ?? 'System' }}</td>
+                                    <td><code style="font-size:0.75rem;background:#f4f1ee;padding:2px 6px;border-radius:4px;">{{ $log->action }}</code></td>
+                                    <td>{{ $log->description }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="empty-row">No activity recorded yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+
+                    @if ($activityTotalPages > 1)
+                        <div class="pagination">
+                            @for ($i = 1; $i <= $activityTotalPages; $i++)
+                                <a href="{{ route('admin.dashboard', array_filter(['tab' => 'activity', 'apage' => $i])) }}"
+                                   class="{{ $i === $activityPage ? 'active' : '' }}">{{ $i }}</a>
                             @endfor
                         </div>
                     @endif
@@ -1759,7 +1800,7 @@
                     ['display_name', 'name', 'price', 'sort_order', 'hex_color'].forEach(field => {
                         const src = row.querySelector('[data-field="' + field + '"]');
                         const dst = editForm.querySelector('[name="' + field + '"]');
-                        if (src && dst) dst.value = src.value;
+                        if (dst) dst.value = src ? src.value : '';
                     });
                     const activeCheck = row.querySelector('.active-check');
                     const activeDst = editForm.querySelector('[name="is_active"]');
@@ -2089,6 +2130,15 @@
         initAdmin();
         restoreDashboardState();
         initAdminNotifications();
+
+        // Auto-hide flash alerts (success/error updates) after 7 seconds.
+        document.querySelectorAll('.alert[data-autohide]').forEach(el => {
+            setTimeout(() => {
+                el.style.transition = 'opacity 0.5s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }, 7000);
+        });
 
         document.addEventListener('click', function(e) {
             const replyBtn = e.target.closest('.notif-reply-btn');

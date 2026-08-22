@@ -44,12 +44,13 @@ class DashboardController extends Controller
 
         $data = array_merge($data, $this->loadCategories());
         $data = array_merge($data, $this->loadServicePhotos());
-        $data = array_merge($data, $this->loadPayments());
+        $data = array_merge($data, $this->loadPayments($request));
         $data = array_merge($data, $this->loadMessages($request));
         $data = array_merge($data, $this->loadOrders($request));
         $data = array_merge($data, $this->loadReports($request));
         $data = array_merge($data, $this->loadCustomizationOptions($request));
         $data = array_merge($data, $this->loadNotifications($request));
+        $data = array_merge($data, $this->loadActivityLogs($request));
 
         return view('admin.dashboard', $data);
     }
@@ -58,6 +59,7 @@ class DashboardController extends Controller
     {
         $message = '';
         $activeTab = null;
+        $loggable = true;
 
         switch ($request->input('action')) {
                 case 'add_product':
@@ -143,6 +145,7 @@ class DashboardController extends Controller
 
                         if ($count > 0) {
                             $message = '⚠️ Cannot delete — products still use this category. Reassign them first.';
+                            $loggable = false;
                         } else {
                             $category->delete();
                             $message = 'Category deleted!';
@@ -192,7 +195,7 @@ class DashboardController extends Controller
                     $displayName = trim((string) $request->input('display_name'));
                     CustomizationOption::query()->create([
                         'type' => 'flower',
-                        'name' => $this->slugifyFlowerName($displayName),
+                        'name' => $this->uniqueOptionSlug($displayName, 'flower'),
                         'display_name' => $displayName,
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -208,7 +211,7 @@ class DashboardController extends Controller
 
                     if ($flower) {
                         $data = [
-                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
+                            'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'flower', (int) $flower->id),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -236,7 +239,7 @@ class DashboardController extends Controller
                 case 'add_custom_color':
                     CustomizationOption::query()->create([
                         'type' => 'color',
-                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
+                        'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'color'),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
@@ -253,7 +256,7 @@ class DashboardController extends Controller
 
                     if ($color) {
                         $data = [
-                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
+                            'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'color', (int) $color->id),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'hex_color' => $this->normalizeHexColor($request->input('hex_color')),
@@ -284,7 +287,7 @@ class DashboardController extends Controller
                 case 'add_ribbon':
                     CustomizationOption::query()->create([
                         'type' => 'ribbon',
-                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
+                        'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'ribbon'),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -300,7 +303,7 @@ class DashboardController extends Controller
 
                     if ($ribbon) {
                         $data = [
-                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
+                            'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'ribbon', (int) $ribbon->id),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -331,7 +334,7 @@ class DashboardController extends Controller
                 case 'add_custom_style':
                     CustomizationOption::query()->create([
                         'type' => 'style',
-                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
+                        'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'style'),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -347,7 +350,7 @@ class DashboardController extends Controller
 
                     if ($style) {
                         $data = [
-                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
+                            'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'style', (int) $style->id),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -375,7 +378,7 @@ class DashboardController extends Controller
                 case 'add_filler':
                     CustomizationOption::query()->create([
                         'type' => 'filler',
-                        'name' => $this->slugifyFlowerName((string) $request->input('display_name')),
+                        'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'filler'),
                         'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                         'price' => (float) $request->input('price', 0),
                         'image_url' => $this->storeUploadedImage($request->file('image')),
@@ -391,7 +394,7 @@ class DashboardController extends Controller
 
                     if ($filler) {
                         $data = [
-                            'name' => $this->slugifyFlowerName((string) $request->input('name')) ?: $this->slugifyFlowerName((string) $request->input('display_name')),
+                            'name' => $this->uniqueOptionSlug((string) $request->input('display_name'), 'filler', (int) $filler->id),
                             'display_name' => trim((string) $request->input('display_name')) ?: (string) $request->input('name'),
                             'price' => (float) $request->input('price', 0),
                             'is_active' => $request->boolean('is_active'),
@@ -466,28 +469,12 @@ class DashboardController extends Controller
                 case 'verify_gcash':
                     DB::table('gcash_payments')->where('id', (int) $request->input('payment_id'))->update([
                         'verified' => true,
+                        'status' => 'verified',
                         'verified_by' => session('admin_id') ?? Auth::guard('admin')->id(),
                         'verified_at' => now(),
                     ]);
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                         'payment_status' => 'completed',
-                    ]);
-                    $order = Order::query()->find((int) $request->input('order_id'));
-
-                    if ($order) {
-                        NotificationService::sendToCustomer(
-                            $order->customer_id,
-                            'payment_confirmed',
-                            'Payment verified',
-                            'Your GCash payment for order '.$order->order_number.' has been confirmed. Thank you!',
-                            route('orders.show', $order->id)
-                        );
-                    }
-                    $message = 'GCash payment verified — order marked as fully paid!';
-                    break;
-
-                case 'approve_order':
-                    DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
                         'order_status' => 'confirmed',
                     ]);
                     $order = Order::query()->find((int) $request->input('order_id'));
@@ -495,18 +482,25 @@ class DashboardController extends Controller
                     if ($order) {
                         NotificationService::sendToCustomer(
                             $order->customer_id,
-                            'order_status',
-                            'Order confirmed',
-                            'Your order '.$order->order_number.' has been confirmed. We\'re getting your flowers ready!',
+                            'payment_confirmed',
+                            'Payment verified & order confirmed',
+                            'Your GCash payment for order '.$order->order_number.' has been confirmed. Your order is now confirmed!',
                             route('orders.show', $order->id)
                         );
                     }
-                    $message = 'Order approved!';
-                    session(['active_tab' => 'orders']);
+                    $message = 'GCash payment verified — order confirmed!';
+                    session(['active_tab' => 'payments']);
                     break;
 
-                case 'decline_order':
+                case 'decline_gcash':
+                    DB::table('gcash_payments')->where('id', (int) $request->input('payment_id'))->update([
+                        'verified' => false,
+                        'status' => 'declined',
+                        'verified_by' => session('admin_id') ?? Auth::guard('admin')->id(),
+                        'verified_at' => now(),
+                    ]);
                     DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
+                        'payment_status' => 'pending_downpayment',
                         'order_status' => 'cancelled',
                     ]);
                     $order = Order::query()->find((int) $request->input('order_id'));
@@ -515,62 +509,72 @@ class DashboardController extends Controller
                         NotificationService::sendToCustomer(
                             $order->customer_id,
                             'order_status',
-                            'Order declined',
-                            'We\'re sorry, your order '.$order->order_number.' was not approved. Please contact us for details.',
+                            'Payment declined — order cancelled',
+                            'Your GCash payment for order '.$order->order_number.' was not verified. The order has been cancelled.',
                             route('orders.show', $order->id)
                         );
                     }
-                    $message = 'Order declined.';
-                    session(['active_tab' => 'orders']);
+                    $message = 'Payment declined — order cancelled.';
+                    session(['active_tab' => 'payments']);
                     break;
 
                 case 'update_order_status':
-                    $allowed = ['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
-
-                    if (in_array($request->input('new_status'), $allowed)) {
-                        DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
-                            'order_status' => $request->input('new_status'),
-                        ]);
-                        $order = Order::query()->find((int) $request->input('order_id'));
-
-                        if ($order) {
-                            $statusMessages = [
-                                'confirmed' => ['Order confirmed', 'Your order '.$order->order_number.' has been confirmed. We\'re getting your flowers ready!'],
-                                'preparing' => ['Order preparing', 'Your order '.$order->order_number.' is being prepared — your flowers are coming together!'],
-                                'ready' => ['Ready for delivery', 'Your order '.$order->order_number.' is ready for delivery!'],
-                                'delivered' => ['Order delivered', 'Your order '.$order->order_number.' has been delivered. Thank you for shopping with HappyStem!'],
-                                'cancelled' => ['Order cancelled', 'Your order '.$order->order_number.' has been cancelled.'],
-                            ];
-                            [$title, $body] = $statusMessages[$request->input('new_status')];
-                            NotificationService::sendToCustomer(
-                                $order->customer_id,
-                                'order_status',
-                                $title,
-                                $body,
-                                route('orders.show', $order->id)
-                            );
-                        }
-                        $message = 'Order status updated!';
-                    }
-                    session(['active_tab' => 'orders']);
-                    break;
-
-                case 'mark_paid':
-                    DB::table('orders')->where('id', (int) $request->input('order_id'))->update([
-                        'payment_status' => 'completed',
-                    ]);
                     $order = Order::query()->find((int) $request->input('order_id'));
 
-                    if ($order) {
+                    if (! $order) {
+                        $message = 'Order not found.';
+                        $loggable = false;
+                        session(['active_tab' => 'orders']);
+                        break;
+                    }
+
+                    $newStatus = $request->input('new_status');
+
+                    if ($order->payment_status === 'partial') {
+                        $message = 'This order is waiting for payment verification. Verify or decline it from the Payments tab first.';
+                        $loggable = false;
+                        session(['active_tab' => 'orders']);
+                        break;
+                    }
+
+                    if ($order->payment_status === 'completed' && $newStatus === 'cancelled') {
+                        $message = 'Cannot cancel an order with verified payment from the dropdown. Decline the payment from the Payments tab instead.';
+                        $loggable = false;
+                        session(['active_tab' => 'orders']);
+                        break;
+                    }
+
+                    if ($order->order_status === 'cancelled' && $newStatus !== 'cancelled') {
+                        $message = 'A cancelled order cannot be changed.';
+                        $loggable = false;
+                        session(['active_tab' => 'orders']);
+                        break;
+                    }
+
+                    $allowed = ['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
+
+                    if (in_array($newStatus, $allowed)) {
+                        DB::table('orders')->where('id', $order->id)->update([
+                            'order_status' => $newStatus,
+                        ]);
+
+                        $statusMessages = [
+                            'confirmed' => ['Order confirmed', 'Your order '.$order->order_number.' has been confirmed. We\'re getting your flowers ready!'],
+                            'preparing' => ['Order preparing', 'Your order '.$order->order_number.' is being prepared — your flowers are coming together!'],
+                            'ready' => ['Ready for delivery', 'Your order '.$order->order_number.' is ready for delivery!'],
+                            'delivered' => ['Order delivered', 'Your order '.$order->order_number.' has been delivered. Thank you for shopping with HappyStem!'],
+                            'cancelled' => ['Order cancelled', 'Your order '.$order->order_number.' has been cancelled.'],
+                        ];
+                        [$title, $body] = $statusMessages[$newStatus];
                         NotificationService::sendToCustomer(
                             $order->customer_id,
-                            'payment_confirmed',
-                            'Payment confirmed',
-                            'Your payment for order '.$order->order_number.' has been marked as paid.',
+                            'order_status',
+                            $title,
+                            $body,
                             route('orders.show', $order->id)
                         );
                     }
-                    $message = 'Payment marked as fully paid!';
+                    $message = 'Order status updated!';
                     session(['active_tab' => 'orders']);
                     break;
 
@@ -599,11 +603,22 @@ class DashboardController extends Controller
                         $message = 'Reply sent!';
                     } elseif (! $contactMessage) {
                         $message = 'Message not found.';
+                        $loggable = false;
                     } else {
                         $message = 'Reply cannot be empty.';
+                        $loggable = false;
                     }
                     session(['active_tab' => 'messages']);
                     break;
+        }
+
+        if ($message !== '' && $loggable) {
+            DB::table('activity_logs')->insert([
+                'admin_id' => Auth::guard('admin')->id() ?? session('admin_id'),
+                'action' => (string) $request->input('action', ''),
+                'description' => Str::limit($message, 250),
+                'created_at' => now(),
+            ]);
         }
 
         if ($activeTab) {
@@ -650,7 +665,7 @@ class DashboardController extends Controller
         $totalPages = max(1, (int) ceil($totalProducts / $productsPerPage));
 
         $products = (clone $query)
-            ->with(['categories', 'flowerVariants'])
+            ->with(['categories', 'flowerVariants.option'])
             ->orderByDesc('id')
             ->offset(($page - 1) * $productsPerPage)
             ->limit($productsPerPage)
@@ -722,6 +737,24 @@ class DashboardController extends Controller
         $slug = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $value), '_'));
 
         return $slug === '' ? 'flower_'.time() : $slug;
+    }
+
+    private function uniqueOptionSlug(string $displayName, string $type, ?int $ignoreId = null): string
+    {
+        $base = $this->slugifyFlowerName($displayName);
+        $slug = $base;
+        $suffix = 2;
+
+        while (CustomizationOption::query()
+            ->where('type', $type)
+            ->where('name', $slug)
+            ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->exists()) {
+            $slug = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     private function storeUploadedImage($file): ?string
@@ -872,17 +905,73 @@ class DashboardController extends Controller
         );
     }
 
-    private function loadPayments(): array
+    private function loadActivityLogs(Request $request): array
     {
-        $pendingPayments = DB::table('gcash_payments as gp')
-            ->join('orders as o', 'gp.order_id', '=', 'o.id')
-            ->join('customers as c', 'o.customer_id', '=', 'c.id')
-            ->where('gp.verified', false)
-            ->orderByDesc('gp.created_at')
-            ->select('gp.*', 'o.order_number', 'o.total_amount', 'o.down_payment', 'c.full_name', 'c.email')
+        $activityPage = max(1, (int) $request->query('apage', 1));
+        $activityPerPage = 20;
+
+        $query = DB::table('activity_logs as al')
+            ->leftJoin('admin_users as au', 'al.admin_id', '=', 'au.id');
+
+        $totalActivity = (clone $query)->count();
+        $activityTotalPages = max(1, (int) ceil($totalActivity / $activityPerPage));
+
+        $activityLogs = (clone $query)
+            ->orderByDesc('al.id')
+            ->select('al.*', 'au.username')
+            ->offset(($activityPage - 1) * $activityPerPage)
+            ->limit($activityPerPage)
             ->get();
 
-        return compact('pendingPayments');
+        return compact('activityLogs', 'totalActivity', 'activityTotalPages', 'activityPage');
+    }
+
+    private function loadPayments(Request $request): array
+    {
+        $paymentFilter = $request->query('payment_filter', 'all');
+
+        if (! in_array($paymentFilter, ['all', 'pending', 'verified', 'declined'], true)) {
+            $paymentFilter = 'all';
+        }
+
+        $paymentsPage = max(1, (int) $request->query('ppage', 1));
+        $paymentsPerPage = 20;
+
+        $baseQuery = DB::table('gcash_payments as gp')
+            ->join('orders as o', 'gp.order_id', '=', 'o.id')
+            ->join('customers as c', 'o.customer_id', '=', 'c.id');
+
+        if ($paymentFilter !== 'all') {
+            $baseQuery->where('gp.status', $paymentFilter);
+        }
+
+        $totalPayments = (clone $baseQuery)->count();
+        $paymentsTotalPages = max(1, (int) ceil($totalPayments / $paymentsPerPage));
+
+        $payments = (clone $baseQuery)
+            ->orderByDesc('gp.created_at')
+            ->orderByDesc('gp.id')
+            ->select('gp.*', 'o.order_number', 'o.total_amount', 'o.down_payment', 'c.full_name', 'c.email')
+            ->offset(($paymentsPage - 1) * $paymentsPerPage)
+            ->limit($paymentsPerPage)
+            ->get();
+
+        $pendingPaymentCount = DB::table('gcash_payments')->where('status', 'pending')->count();
+        $paymentStatusCounts = DB::table('gcash_payments')
+            ->select('status', DB::raw('COUNT(*) as cnt'))
+            ->groupBy('status')
+            ->pluck('cnt', 'status')
+            ->toArray();
+
+        return compact(
+            'payments',
+            'totalPayments',
+            'paymentsTotalPages',
+            'paymentsPage',
+            'paymentFilter',
+            'paymentStatusCounts',
+            'pendingPaymentCount'
+        );
     }
 
     private function loadNotifications(Request $request): array

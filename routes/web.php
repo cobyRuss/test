@@ -49,6 +49,7 @@ Route::get('/orders/cancel-success', [OrderController::class, 'cancelSuccess'])-
 
 Route::get('/orders/{id}/gcash', [GcashPaymentController::class, 'show'])->whereNumber('id')->name('orders.gcash');
 Route::post('/orders/{id}/gcash', [GcashPaymentController::class, 'store'])->whereNumber('id')->name('orders.gcash.submit');
+Route::post('/orders/{id}/gcash/cancel', [GcashPaymentController::class, 'cancel'])->whereNumber('id')->name('orders.gcash.cancel');
 
 Route::post('/contact/send', [ContactController::class, 'send'])->name('contact.send');
 

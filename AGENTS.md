@@ -34,6 +34,18 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
 1. `git status` and `git log --oneline -10` to see current state.
 2. Check DB tables with the mysql client if the task touches data.
 
+## User preferences (standing permissions & habits)
+
+- **Standing permission granted (2026-08-21): the user allows file/system access on
+  their machine at all times — never ask permission for drive/file access again.**
+  Just do it (still explain what a non-trivial command does before running it).
+- **When the user asks to change something in one section, remind them of sibling
+  sections that share the same pattern** before/while implementing (e.g. when they
+  asked to hide slugs on Flowers/Fillers/Ribbons/Styles, Wrapper Colors also had them
+  and needed the change later). Proactively list affected siblings; let them decide.
+- Slugs on ALL customization option types (flower, color, filler, ribbon, style) are
+  now system-managed via `uniqueOptionSlug()` — never surface a slug editor in admin UI.
+
 ## Code conventions
 
 - Laravel project; follow existing patterns in `app/`, `resources/views/`.
@@ -144,6 +156,28 @@ Keep it to 1–3 sentences. Then continue with the task as normal.
   `orders.payment_status` flow: `pending_downpayment` (Unpaid) → `partial` (Payment Submitted,
   awaiting verification) → `completed` (Paid — admin Verify marks it completed). GCash
   screenshot is required; admin views it inline via the `#gcashLightbox` modal (thumbnails in
-  the Payments tab and the Orders tab Payment column).
+  the Payments tab and the Orders tab Payment column). **Admin payment actions are ONLY in the
+  Payments tab** (Verify = payment confirmed + order auto-confirmed; Decline = payment rejected +
+  order auto-cancelled). The Orders tab status dropdown **hides "cancelled" when payment is
+  verified** and **locks to "cancelled" when declined**. Customers can cancel unpaid orders from
+  the GCash payment page (restores fixed-product items to cart). Phone numbers are stored as
+  10-digit `9xxxxxxxxx` format (no leading `0`).
 - Admin dashboard sidebar: solid `#8a9b6e`, sticky (never scrolls with content), stretched to
   the bottom of the page (`align-self: stretch` on `.admin-nav`).
+- Admin payment/order workflow (2026-08-21): **Payments tab = "GCash Payment History"** — every
+  payment row shows a `gcash_payments.status` badge (`pending|verified|declined`, new enum
+  column from migration `2026_08_21_000001`; declines also stamp `verified_by`/`verified_at`).
+  Filterable All/Pending/Verified/Declined (`payment_filter`) + paginated 20/page (`ppage`).
+  Verify/Decline buttons are ACTIVE only on pending rows — verified/declined rows render them
+  disabled. **Orders tab**: while a payment is unreviewed (`payment_status='partial'`) the
+  status cell shows "⏳ Waiting for verification" instead of the dropdown, and
+  `update_order_status` rejects changes server-side. After verify: dropdown returns
+  ("cancelled" hidden); after decline: locked to "cancelled"; delivered locks too. Customers can
+  cancel unpaid orders from the GCash payment page (restores fixed-product items to cart).
+- Reviews/Ratings **removed entirely** (2026-08-18): the `@for` Blade directive inside
+  product cards within `@foreach` + `@extends('layouts.app')` caused infinite output
+  generation on PHP 8.2.12 ZTS / Windows, hanging all pages that use the shared layout.
+  Tables `reviews` and `review_photos` dropped; models `Review`, `ReviewPhoto` and
+  `ReviewController` deleted; all star-rating display removed from home, shop, product
+  detail, and admin dashboard. **Do not re-add `@for` inside `@foreach` inside
+  `@extends`** — use `@php` helpers or inline logic for repeated elements.

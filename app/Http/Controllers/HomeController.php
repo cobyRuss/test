@@ -10,12 +10,12 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        $itemsPerPage = 6;
+        $itemsPerPage = 8;
         $page = max(1, (int) $request->query('page', 1));
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query()->with(['flowerVariants']);
+        $query = Product::query()->with(['flowerVariants.option']);
 
         if ($category !== 'all') {
             $query->whereHas('categories', function ($q) use ($category) {

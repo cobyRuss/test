@@ -375,6 +375,97 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
   tab), and the scroll + card are restored after reload. Verified in Edge via Playwright:
   save from Flower Variants → scroll position, tab, and open card all persist.
 
+## Latest work (2026-08-21): localhost slowness after ratings removal — fixed
+
+- **Cause 1: OPcache was disabled** (`;zend_extension=opcache` commented out in
+  `C:/xampp/php/php.ini`). Every request recompiled all of Laravel's PHP files
+  (~0.25–0.66s/page, ~11s first hit after idle on Windows+Defender). Always true,
+  but only noticeable once pages worked again post-fix.
+- **Cause 2: stale caches predating the removal** — `bootstrap/cache/routes-v7.php`
+  (Aug 18 11:29) still had 25 ReviewController references while the removal commit is
+  14:25; Laravel serves routes from cache and ignores `routes/web.php` → leftover review
+  URLs 500'd. Config cache (Aug 17) froze pre-fix `.env`. Fixed via `artisan optimize:clear`.
+- **php.ini updated**: opcache enabled (enable=1, enable_cli=1, memory 192M,
+  max_accelerated_files=16000, validate_timestamps=1, revalidate_freq=1). **Apache must be
+  restarted via XAMPP Control Panel for this to apply** (service control needs admin;
+  CLI `httpd -k restart` gets "Access denied").
+- Lesson: after any route/config-changing commit, run `"C:/xampp/php/php.exe" artisan optimize:clear`
+  if caches exist in `bootstrap/cache/`.
+- **Eager-load fix:** storefront queries (home, shop, product show + related, cart add)
+  now load `flowerVariants.option` instead of just `flowerVariants` — availability checks
+  read `$variant->option->is_active`, so without the nested eager load every product card
+  caused extra per-variant/per-option queries (n+1).
+
+### Flower Variants tab: hex removed entirely (2026-08-21)
+
+- **Flower variants no longer use hex colors at all** (user decision — photos only).
+  In the admin Flower Variants modal: removed the add-form "Hex Color" field, the inline
+  hex editor under the variant name, the "Color / Image" table column, and the hex-swatch
+  branch in the first-column thumbnail. Table is now: thumb | Flower | Type | Name |
+  Price | Sort | Active | Actions.
+- **Ribbon variants keep their hex field** — they share the same `add_variant`/`edit_variant`
+  controller actions and the shared `variantEditForm`, so those were NOT touched.
+- **JS hardened**: the row-save copy loop now writes `''` into shared-form fields that a row
+  doesn't have (`if (dst) dst.value = src ? src.value : ''`) — prevents a stale ribbon hex
+  from leaking onto a flower variant when both are saved in one page load. Saving a flower
+  color variant now nulls its `hex_color` server-side (`normalizeHexColor('') → null`);
+  storefront swatches already ignore hex for flower colors (image-only), so no visual change.
+
+### Flower/filler/ribbon/style slugs hidden + auto-deduped (2026-08-21)
+
+- **Slug (`name`) inline editor removed from the admin rows** for Flowers, Fillers,
+  Ribbons, Styles, **and Wrapper Colors** (colors added same day — user initially forgot
+  them). Slugs are now 100% system-managed for ALL customization option types — admins
+  only ever see/edit the Display Name.
+- **Auto-dedup:** new `DashboardController::uniqueOptionSlug($displayName, $type, $ignoreId)`
+  slugifies the display name then appends `-2`, `-3`, … while a same-type row with that
+  slug exists (per-`type` scope, excluding self on edit). Wired into add+edit for
+  flower/color/filler/ribbon/style; renames regenerate the slug from the new display name
+  (safe: cart/customize code references `display_name`, never the slug).
+- No DB schema change (no unique index on `name`; duplicates were silently allowed before).
+- Verified live for flowers AND colors: two same-named rows → `x` + `x-2`; renames onto
+  existing slugs → suffixed. Test rows deleted.
+
+### Payment verification UX rework: waiting label + filterable payment history (2026-08-21)
+
+- **`gcash_payments.status` enum added** (`pending|verified|declined`, default `pending`,
+  migration `2026_08_21_000001`; backfilled `verified=1 → 'verified'`). `verified` boolean
+  kept in sync for legacy code. Declines now record `verified_by`/`verified_at` too
+  (who/when acted), so history is auditable. `database.sql` regenerated.
+- **Payments tab is now a full "GCash Payment History"** (was pending-only): filter select
+  All/Pending/Verified/Declined with counts (`payment_filter` param), paginated 20/page
+  (`ppage`), new Status column with badge (+ acted-on timestamp for non-pending rows).
+  Pending rows show active Verify/Decline; **verified/declined rows show the buttons
+  disabled** (opacity + not-allowed cursor, tooltip "already …").
+- **Orders tab:** an order whose payment awaits review (`payment_status = 'partial'`) shows
+  a **"⏳ Waiting for verification" badge instead of the status dropdown**. After verify
+  (dropdown returns, payment completed) or decline (locked to cancelled as before), normal
+  dropdown rules apply. Server-side guard added: `update_order_status` rejects changes while
+  `payment_status = 'partial'` ("verify or decline from the Payments tab first").
+- Verified end-to-end via curl admin session: seeded 2 partial orders → both appeared
+  pending w/ active buttons; dropdown hidden on both; direct status-change POST rejected;
+  verify → buttons disabled, dropdown back, order completed/confirmed; decline → disabled,
+  order cancelled/unpaid; filters isolate each. Test data deleted.
+
+### Activity Log tab + 7-second flash alerts (2026-08-21)
+
+- **Flash alerts auto-hide after 7s.** Success/error alerts in the admin dashboard carry
+  `data-autohide` and a small script fades them out (0.5s opacity transition) 7 seconds
+  after page load — "Payment declined — order cancelled." etc. no longer stick around.
+- **New Activity Log tab** (sidebar between Notifications and Reports; panel `tab-activity`):
+  - New `activity_logs` table (`admin_id` nullable FK→admin_users, `action`, `description`,
+    `created_at`; migration `2026_08_21_000002`). `database.sql` regenerated.
+  - `handlePostActions()` writes one row per admin action that produced a message, using the
+    flash message as description and the action key as `action`. **No-op/rejected actions are
+    NOT logged** via a `$loggable` flag set false at: category delete blocked, order not found,
+    waiting-for-verification guard, verified-payment-cancel guard, cancelled-order guard,
+    message not found, empty reply.
+  - Loader: `loadActivityLogs()` paginated 20/page (`apage` param), newest first, joined to
+    `admin_users` for the username column ("System" if missing).
+- Verified live: add/delete category produced both log rows shown on the tab; no-ops logged
+  nothing; test rows deleted afterward. Gotcha for testers: admin actions have per-action field
+  names (`cat_display`/`cat_id` for categories) — POSTing the wrong name silently does nothing.
+
 ## Known issues / gotchas
 
 - **Do NOT re-introduce the full-AJAX dashboard.** A fetch-based form interceptor that
@@ -510,3 +601,90 @@ Then http://127.0.0.1:8000 (customer) or http://127.0.0.1:8000/admin/login (admi
 - Verified end-to-end with curl (admin + customer sessions): message → admin bell → reply →
   customer bell → history/messages pages; full order round-trip (checkout → gcash → verify →
   approve) producing all 4 admin + 3 customer notification types. Test data cleaned up.
+
+## Latest work (2026-08-17): Admin payment/order workflow redesign + Product reviews
+
+### Admin payment/order workflow redesign (2026-08-17)
+
+- **Payments tab is now the only place for payment actions.** Each payment row has both
+  **Verify** and **Decline** buttons side by side:
+  - **Verify** → `verify_gcash`: sets `gcash_payments.verified = true`, `payment_status = 'completed'`,
+    `order_status = 'confirmed'`, notifies customer (`payment_confirmed`).
+  - **Decline** → `decline_gcash` (new): sets `gcash_payments.verified = false`,
+    `payment_status = 'pending_downpayment'`, `order_status = 'cancelled'`, notifies customer
+    (`order_status`).
+- **Orders tab stripped down.** Approve, Decline, and Mark Paid buttons removed. Only the
+  status dropdown remains.
+- **Status dropdown smart behavior:**
+  - When `payment_status = 'completed'` (verified): "cancelled" is hidden from the dropdown —
+    admin can only move forward (confirmed → preparing → ready → delivered).
+  - When `order_status = 'cancelled'` (from decline or customer cancel): dropdown is locked
+    to "cancelled" (final state, `disabled`).
+  - When `order_status = 'delivered'`: dropdown is locked to "delivered" (final state).
+  - Server-side guards: cannot change a cancelled order; cannot cancel a verified/paid order
+    via dropdown (error message shown).
+- **Customer GCash cancel** (new): `/orders/{id}/gcash` page has a "Cancel & Return to Cart"
+  button (POST form, requires CSRF). `GcashPaymentController::cancel()` restores fixed-product
+  items to the customer's cart (custom items skipped), cancels the order, and redirects to cart.
+
+### Product review system (2026-08-17)
+
+> **REMOVED 2026-08-18 — this entire system no longer exists** (see AGENTS.md
+> "Key decisions"). The `@for`-inside-`@foreach`-inside-`@extends` Blade hang forced a
+> full removal: tables `reviews`/`review_photos` dropped, models + ReviewController
+> deleted, all star UI removed from storefront and admin. History below kept for
+> reference only — do not rebuild it the same way.
+
+- **DB tables:** `reviews` (UNIQUE on customer_id+product_id, rating 1-5, comment nullable,
+  is_visible boolean, order_item_id FK) and `review_photos` (review_id FK CASCADE, image_url).
+  Models: `Review`, `ReviewPhoto`.
+- **`ReviewController@store`**: validates rating 1-5 + order_item_id (must belong to customer,
+  product_id must match, order must be delivered, no existing review). Creates review + photos.
+- **`ReviewController@update`/`destroy`/`deletePhoto`**: owner-only, updates/creates/deletes
+  with proper photo cleanup.
+- **Product show page** (`products/show.blade.php`):
+  - Review summary is **always shown** (even with 0 reviews): empty stars + "No reviews yet"
+    when none; average rating + count when reviews exist.
+  - "Write a Review" form gated by `$canReview` (delivered order_item for that product exists
+    and no existing review). Star selector uses `initStars()` JS (click to select, hover preview).
+    Photos: file input, max 5, preview thumbnails. Submit button must NOT use class
+    `add-to-cart-btn` (see gotcha below).
+  - Existing review section with Edit/Delete + photo lightbox.
+  - Review list below: avatar, name, date, stars, comment, photo thumbnails with lightbox.
+- **Star ratings on product cards**: home page, shop page, related products, and product detail
+  page all show star ratings next to product info (using `$product->average_rating` /
+  `$product->review_count` computed attributes from eager-loaded reviews).
+- **Admin Reviews tab**: table with filters (All/Visible/Hidden), actions `hide_review` /
+  `show_review` / `delete_review` in `handlePostActions()`. Admin notified on new review via
+  `NotificationService`.
+- **Review prompt notification**: When admin marks order as `delivered` (via `update_order_status`),
+  a `review_prompt` notification is sent per non-custom product in the order (product_id > 0),
+  linking the customer directly to that product's review section.
+- `Product` model: `reviews()` relationship, `average_rating` and `review_count` computed
+  attributes (use eager-loaded collection, filter `is_visible`).
+- `ProductController::show`: eager-loads visible reviews with customer + photos; passes
+  `$canReview`, `$existingReview`, `$eligibleOrderItems` to the view.
+
+### Other fixes (2026-08-17)
+
+- **Fixed relative URLs in `main.js`**: all fetch calls changed from relative (`cart/add`,
+  `cart/update`, `cart/count`) to absolute (`/cart/add`, `/cart/update`, `/cart/count`) —
+  relative URLs broke on nested routes like `/products/{id}` where JS thought it was
+  `/products/cart/add`.
+- **Homepage shows 8 products** instead of 6 (query limit changed in `HomeController`).
+- **Phone number normalization**: DB updated to strip leading `0` from all customer phones;
+  checkout validation uses `required` + `regex:/^9\d{9}$/`; when mode=`me`, recipient phone is
+  `nullable` (not required); leading-0 prefix removed from storage in CheckoutController.
+- **Cancelled orders hide Mark Paid**: added `&& $order->order_status !== 'cancelled'` check
+  to the Mark Paid button visibility in Orders tab.
+
+### Gotchas hit
+
+- **`add-to-cart-btn` class hijacks any click.** `main.js` attaches a delegated click handler
+  to ALL `.add-to-cart-btn` elements and sends `POST /cart/add` with `this.dataset.id`. If a
+  button has this class but no `data-id`, it POSTs with empty product_id → "Product not found".
+  The review submit button must use its own class (e.g. plain button with inline styles).
+- **Blade directives on one line cause parse errors.** Putting `@auth('web')@if($canReview)...
+  @else...@endif @endauth` all on one line makes Blade's compiler choke on the `@else` /
+  `@endif` boundaries, producing `@endif` as literal text in compiled PHP → "unexpected end of
+  file". Always split `@auth`/`@if`/`@else`/`@endif` onto separate lines.

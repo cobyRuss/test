@@ -146,19 +146,17 @@
         </div>
     </section>
 
-            @if ($contactSuccess)
-                <div class="alert alert-success">{{ $contactSuccess }}</div>
-            @endif
+    @if ($contactSuccess)
+        <div class="alert alert-success">{{ $contactSuccess }}</div>
+    @endif
 
-            @if ($contactErrors)
-                <div class="alert alert-error">
-                    <ul style="margin-left:18px;">
-                        @foreach ($contactErrors as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+    @if ($contactErrors)
+        <div class="alert alert-error">
+            <ul style="margin-left:18px;">
+                @foreach ($contactErrors as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
-    </section>
+    @endif
 @endsection

@@ -15,7 +15,7 @@ class ProductController extends Controller
         $category = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
 
-        $query = Product::query()->with(['flowerVariants']);
+        $query = Product::query()->with(['flowerVariants.option']);
 
         if ($category !== 'all') {
             $query->whereHas('categories', function ($q) use ($category) {
@@ -47,12 +47,12 @@ class ProductController extends Controller
 
     public function show(Request $request, int $id)
     {
-        $product = Product::query()->with(['categories', 'flowerVariants'])->findOrFail($id);
+        $product = Product::query()->with(['categories', 'flowerVariants.option'])->findOrFail($id);
 
         $categoryIds = $product->categories->pluck('id');
 
         $related = Product::query()
-            ->with('flowerVariants')
+            ->with('flowerVariants.option')
             ->whereHas('categories', function ($q) use ($categoryIds) {
                 $q->whereIn('product_categories.id', $categoryIds);
             })
